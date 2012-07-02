@@ -822,16 +822,14 @@ private:
 
 class obball:public globx{
 	float lft;
-	float colr=1;
+	GLuint colr;
 public:
-	obball(glob&g,const p3&p,const float r=.05f,const float lft=2,const float bounciness=.3f,const float density=1):globx(g,p,p3(90,0,0),r,bounciness,density),lft(lft){
+	obball(glob&g,const p3&p,const float r=.05f,const float lft=2,const float bounciness=.3f,const float density=1,const GLuint colr=0xffffffff):globx(g,p,p3(90,0,0),r,bounciness,density),lft(lft),colr(colr){
 		setblt(true).setitem(true);
 	}
 	void gldraw(){
-		if(getid()==4)
-			glColor4f(1,0,0,1);
-		else
-			glColor4f(0,1,0,1);
+		this->colr=((GLuint)rnd(0,0x1000000)<<8)|(0x000000ff);
+		glColor4ubv((GLubyte*)&colr);
 		glutSolidSphere(radius(),20,20);
 	}
 	virtual void tick(){
@@ -1549,13 +1547,13 @@ class obray:public obtex,public keyb{
 	ostringstream oss;
 	int x,y;
 public:
+	obray(glob&g=wold::get(),const p3&p=p3(),const p3&a=p3(),const char*title="megarayone and orthonorm"):obtex(g,256,1,p,a),p(rgba+wihi*bp+bp),title(title){
+		setcolmx(true);
+	}
 	virtual void onkeyb(const char c,const bool pressed,const int x,const int y){
 		if(pressed)
 			oss<<c;
 		this->x=x;this->y=y;
-	}
-	obray(glob&g=wold::get(),const p3&p=p3(),const p3&a=p3(),const char*title="megarayone and orthonorm"):obtex(g,32*bp,1,p,a),p(rgba+wihi*bp+bp),title(title){
-		setcolmx(true);
 	}
 	inline obray&phom(){p=rgba+wihi*bp+bp;return*this;}
 	inline obray&prnt(const char*s){return prnt(strlen(s),s);}
@@ -1605,7 +1603,11 @@ public:
 		return *this;
 	}
 	inline obray&nl(){p=pnl+=wihi*bp;return*this;}
-	GLuint ray(const float x,const float y){if(x==y)return 0xffffffff;return 0x202020ff;}
+	GLuint ray(const float x,const float y){
+		if(x==y)
+			return 0xffffffff;
+		return ((GLuint)x<<24)|((GLuint)y<<8)|0xff;
+	}
 	void rend(){
 		obtex::tick();
 		GLuint*p=(GLuint*)rgba;
@@ -1624,8 +1626,8 @@ unsigned short obray::fnt_az[]={0x0552,0x0771,0x0212,0x0774,0x0737,0x0137,0x0651
 unsigned short obray::fnt_09[]={0x0252,0x0220,0x0621,0x0642,0x0451,0x0324,0x0612,0x0247,0x2702,0x2452};
 
 namespace glut{
-	const int nplayers=2;
 	bool multiplayer=false;
+	const int nplayers=2;
 	windo*players[nplayers];
 	keyb*keyb;
 	windobot bot;
