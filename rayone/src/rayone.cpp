@@ -438,14 +438,13 @@ public:
 		metrics::globsrend++;
 //		flf();l("included")<<endl;
 		glTranslatef(getx(),gety(),getz());
-		glRotatef(a.getz(),0,0,1);
-		glRotatef(a.getx(),1,0,0);
 		glRotatef(a.gety(),0,1,0);
+		glRotatef(a.getx(),1,0,0);
+		glRotatef(a.getz(),0,0,1);
 		if(drawboundingspheres)drawboundingsphere();
 		gldraw();
 		for(auto g:chs){glPushMatrix();g->culldraw(npl,pl);glPopMatrix();}//? coordsyschange
 	}
-	virtual void gldraw(){};
 	virtual void tick(){
 		chs.splice(chs.end(),chsadd);
 		for(auto g:chs)g->tick();
@@ -491,6 +490,7 @@ public:
 //			}
 //		}
 	}
+	virtual void gldraw(){};
 	inline p3&agl(){return a;}//?
 	inline p3&getd(){return d;}//?
 	inline float mass()const{return m;}
@@ -619,12 +619,7 @@ protected:
 		m.mw(mxmwpos,mxmwagl);
 
 		mxmw=g.mxmw;
-		mxmw.mul(m);
-
-//		glTranslatef(getx(),gety(),getz());
-//		glRotatef(a.getx(),1,0,0);
-//		glRotatef(a.gety(),0,1,0);
-//		glRotatef(a.getz(),0,0,1);
+		mxmw.mul(m);//? if mxmw is ident skip
 
 		return true;
 	}
