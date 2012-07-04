@@ -361,16 +361,23 @@ class glob:public p3{
 	p3 mxmwagl;
 	bool rmed;
 	float r;
+	p3 dd;
+	float bf;
+	p3 np,nd;
+	float m=1;
 protected:
+	p3 d;
+	p3 f;
+	p3 fi;
+	p3 pp;
+	bool ppsaved;
 	list<glob*>chs;
 public:
-	p3 d;
-	p3 np,nd;
-	float m;
 	static bool drawboundingspheres;
 	static int drawboundingspheresdetail;
 
-	glob(glob&g,const p3&p=p3(),const p3&a=p3(),const float r=1,const float density_gcm3=1):p3(p),id(metrics::globs++),g(g),a(a),bits(1),rmed(false),r(r),d(p3()),np(p3()),nd(p3()),m(density_gcm3*4/3*pi*r*r*r){
+	glob(glob&g,const p3&p=p3(),const p3&a=p3(),const float r=1,const float density_gcm3=1,const float bounciness=.5f)
+		:p3(p),id(metrics::globs++),g(g),a(a),bits(1),rmed(false),r(r),bf(bounciness),np(p3()),nd(p3()),m(density_gcm3*4/3*pi*r*r*r),d(p3()),f(p3()),fi(p3()),pp(p),ppsaved(false){
 		if(&g==0)return;
 		g.chsadd.push_back(this);
 	}
@@ -382,7 +389,9 @@ public:
 		}
 		rmed=true;g.chsrm.push_back(this);
 	}
-	inline p3&agl(){return a;}
+	inline p3&agl(){return a;}//?
+	inline p3&getd(){return d;}//?
+	inline float mass()const{return m;}
 	inline glob&parent()const{return g;}
 	inline int getid()const{return id;}
 	inline const list<glob*>chls()const{return chs;}
@@ -473,57 +482,6 @@ public:
 		glutSolidSphere(radius(),detail,detail);
 	}
 	virtual void gldraw(){};
-	virtual void tick(){
-		chs.splice(chs.end(),chsadd);
-		for(auto g:chs)g->tick();
-		for(auto g:chsrm){chs.remove(g);delete g;}
-		chsrm.clear();
-	}
-	virtual bool oncol(glob&o){metrics::collisions++;return &o==&o;}
-protected:
-	p3 posinwcs(const p3&p){refreshmxmw();p3 d;mxmw.trnsf(p,d);return d;}
-	bool refreshmxmw(){
-		if(!&g)
-			return false;
-		bool refrsh=g.refreshmxmw();
-		if(!refrsh){
-			if(mxmwpos==*this&&mxmwagl==a){
-				return false;
-			}
-		}
-		metrics::mwrefresh++;
-
-		mxmwagl=a;
-		mxmwpos=*this;
-
-		m3 m;
-		m.ident();
-		m.mw(mxmwpos,mxmwagl);
-
-		mxmw=g.mxmw;
-		mxmw.mul(m);
-
-//		glTranslatef(getx(),gety(),getz());
-//		glRotatef(a.getx(),1,0,0);
-//		glRotatef(a.gety(),0,1,0);
-//		glRotatef(a.getz(),0,0,1);
-
-		return true;
-	}
-};
-bool glob::drawboundingspheres=true;
-int glob::drawboundingspheresdetail=6;
-
-class globx:public glob{
-protected:
-	bool ppsaved;
-public:
-	p3 dd;
-	p3 f;
-	p3 fi;
-	p3 pp;
-	float bf;
-	globx(glob&g,const p3&p=p3(),const p3&a=p3(),const float r=1,float bounciness=1,float density=1):glob(g,p,a,r,density),f(p3()),fi(p3()),pp(p),bf(bounciness){}
 	inline p3&dp(){return d;}
 	virtual void tick(){
 //		set(np);
@@ -564,7 +522,10 @@ public:
 //				d.set(0,0,0);
 //			}
 //		}
-		glob::tick();
+		chs.splice(chs.end(),chsadd);
+		for(auto g:chs)g->tick();
+		for(auto g:chsrm){chs.remove(g);delete g;}
+		chsrm.clear();
 	}
 	bool solvesecdegeq(const float a,const float b,const float c,float&t1,float&t2)const{
 		const float pt2=2*a;
@@ -583,7 +544,7 @@ public:
 		return true;
 	}
 	virtual bool oncol(glob&o){//? defunc
-		glob::oncol(o);
+		metrics::collisions++;
 //		flf();l()<<typeid(*this).name()<<"["<<this->getid()<<"]"<<endl;
 		if(!o.issolid())return true;
 		const p3&p1=*this;
@@ -643,8 +604,40 @@ public:
 		np.transl(nd,dt()*(1-t));
 		return true;
 	}
-};
 
+protected:
+	p3 posinwcs(const p3&p){refreshmxmw();p3 d;mxmw.trnsf(p,d);return d;}
+	bool refreshmxmw(){
+		if(!&g)
+			return false;
+		bool refrsh=g.refreshmxmw();
+		if(!refrsh){
+			if(mxmwpos==*this&&mxmwagl==a){
+				return false;
+			}
+		}
+		metrics::mwrefresh++;
+
+		mxmwagl=a;
+		mxmwpos=*this;
+
+		m3 m;
+		m.ident();
+		m.mw(mxmwpos,mxmwagl);
+
+		mxmw=g.mxmw;
+		mxmw.mul(m);
+
+//		glTranslatef(getx(),gety(),getz());
+//		glRotatef(a.getx(),1,0,0);
+//		glRotatef(a.gety(),0,1,0);
+//		glRotatef(a.getz(),0,0,1);
+
+		return true;
+	}
+};
+bool glob::drawboundingspheres=true;
+int glob::drawboundingspheresdetail=6;
 
 class obtex:public glob{
 	GLuint gltx;
@@ -820,11 +813,11 @@ private:
 	}
 };
 
-class obball:public globx{
+class obball:public glob{
 	float lft;
 	GLuint colr;
 public:
-	obball(glob&g,const p3&p,const float r=.05f,const float lft=2,const float bounciness=.3f,const float density=1,const GLuint colr=0xffffffff):globx(g,p,p3(90,0,0),r,bounciness,density),lft(lft),colr(colr){
+	obball(glob&g,const p3&p,const float r=.05f,const float lft=2,const float bounciness=.3f,const float density=1,const GLuint colr=0xffffffff):glob(g,p,p3(90,0,0),r,bounciness,density),lft(lft),colr(colr){
 		setblt(true).setitem(true);
 	}
 	void gldraw(){
@@ -839,7 +832,7 @@ public:
 			return;
 		}
 		colr=1;
-		globx::tick();
+		glob::tick();
 	}
 };
 
@@ -847,7 +840,7 @@ class wold:public glob{
 	static wold wd;
 	float t=0;
 	grid grd;
-	wold(const float r=15):glob(*(glob*)0,p3(),p3(),r),grd(r){}
+	wold(const float r=15):glob(*(glob*)0,p3(),p3(),r),t(0),grd(r),con(0),kb(0){}
 public:
 	glob*con;
 	keyb*kb;
@@ -1039,7 +1032,7 @@ namespace gloxnet{
 	}
 }
 
-class windo:public globx,public keyb{
+class windo:public glob,public keyb{
 	m3 mxv;
 	bool dodrawhud=false,gamemode=false,fullscr=false,consolemode=false;
 	float zoom;
@@ -1050,13 +1043,13 @@ class windo:public globx,public keyb{
 	float fwdbckrate=.001f;
 	float straferate=.001f;
 	float turnrate=180;
-	float rocketforce=150*m;
+	float rocketforce=150*mass();
 	float rocketfuelburnrate=6;
-	float smallflapimpulseforce=7*m;
+	float smallflapimpulseforce=7*mass();
 	float smallflapfuelburn=.4f;
-	float bigflapimpulseforce=15*m;
+	float bigflapimpulseforce=15*mass();
 	float bigflapfuelburn=1;
-	float leapimpulseforce=17*m;
+	float leapimpulseforce=17*mass();
 	float leapfuelburn=2;
 	float flapperyrecoveryrate=3;
 	float flapperymax=1;
@@ -1111,7 +1104,7 @@ public:
 public:
 	int player=0;
 	bool viewpointlht,drawshadows;
-	windo(glob&g=wold::get(),const p3&p=p3(),const p3&a=p3(),const float r=.1f,const int width=1024,const int height=512,const float zoom=1.5):globx(g,p,a,r,.25f),zoom(zoom),wi(width),hi(height){}
+	windo(glob&g=wold::get(),const p3&p=p3(),const p3&a=p3(),const float r=.1f,const int width=1024,const int height=512,const float zoom=1.5):glob(g,p,a,r,.25f),zoom(zoom),wi(width),hi(height){}
 	inline bool isgamemode()const{return gamemode;}
 	inline bool isfullscreen()const{return fullscr;}
 	inline int width()const{return wi;}
@@ -1364,7 +1357,7 @@ public:
 		if(flappery>flapperymax)flappery=flapperymax;
 		rocketry+=dt(rocketryrecoveryrate);
 		if(rocketry>rocketrymax)rocketry=rocketrymax;
-		globx::tick();
+		glob::tick();
 	}
 	void gldraw(){
 		glColor3f(1,0,0);
@@ -1455,8 +1448,8 @@ private:
 		const float sz=rnd(-sprd,sprd);
 		vv.transl(sx,sy,sz);
 //		globx&o=*new obball(wold::get(),lv.scale(radius()+r).transl(sx,sy,sz).transl(*this),r);
-		globx&o=*new obball(wold::get(),*this,r);
-		o.d.set(vv);
+		glob&o=*new obball(wold::get(),*this,r);
+		o.getd().set(vv);
 	}
 	void pl(const char*text,const GLfloat y=0,const GLfloat x=0,const GLfloat linewidth=1,const float scale=1){
 		const char*cp=text;
@@ -1547,7 +1540,7 @@ class obray:public obtex,public keyb{
 	ostringstream oss;
 	int x,y;
 public:
-	obray(glob&g=wold::get(),const p3&p=p3(),const p3&a=p3(),const char*title="megarayone and orthonorm"):obtex(g,256,1,p,a),p(rgba+wihi*bp+bp),title(title){
+	obray(glob&g=wold::get(),const p3&p=p3(),const p3&a=p3(),const char*title="megarayone and orthonorm"):obtex(g,256,1,p,a),p(rgba+wihi*bp+bp),title(title),x(0),y(0){
 		setcolmx(true);
 	}
 	virtual void onkeyb(const char c,const bool pressed,const int x,const int y){
