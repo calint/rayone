@@ -8,7 +8,7 @@ using namespace std;
 
 namespace glox{
 	namespace clk{
-		int fps=10;
+		int fps=60;
 		int dtms=1000/fps;
 		float dt=dtms/1000.f;
 		clock_t t0=clock();
@@ -355,7 +355,6 @@ class glob:public p3{
 	float r;
 	p3 dd;
 	float bf;
-	p3 np,nd;
 	float m=1;
 protected:
 	p3 d;
@@ -365,11 +364,13 @@ protected:
 	bool ppsaved;
 	inline const list<glob*>getchs()const{return chs;}
 public:
+	p3 np;
+	p3 nd;
 	static bool drawboundingspheres;
 	static int drawboundingspheresdetail;
 
 	glob(glob&g,const p3&p=p3(),const p3&a=p3(),const float r=1,const float density_gcm3=1,const float bounciness=.5f)
-		:p3(p),id(metrics::globs++),g(g),a(a),bits(1),rmed(false),r(r),bf(bounciness),np(p3()),nd(p3()),m(density_gcm3*4/3*pi*r*r*r),d(p3()),f(p3()),fi(p3()),pp(p),ppsaved(false){
+		:p3(p),id(metrics::globs++),g(g),a(a),bits(1),rmed(false),r(r),bf(bounciness),m(density_gcm3*4/3*pi*r*r*r),d(p3()),f(p3()),fi(p3()),pp(p),ppsaved(false),np(p),nd(d){
 		if(&g==0)return;
 		g.chsadd.push_back(this);
 	}
@@ -398,14 +399,14 @@ public:
 			return;
 		}
 		if(issolid()&&o.issolid()){//?
-			o.np.set(o);
-			o.nd.set(o.d);
+//			o.np.set(o);
+//			o.nd.set(o.d);
 			oncol(o);
 			o.oncol(*this);
-			this->set(np);
-			this->d.set(nd);
-			o.set(o.np);
-			o.d.set(o.nd);
+//			this->set(np);
+//			this->d.set(nd);
+//			o.set(o.np);
+//			o.d.set(o.nd);
 			return;
 		}
 		if(issolid()&&!o.issolid()){
@@ -446,13 +447,14 @@ public:
 		for(auto g:chs){glPushMatrix();g->culldraw(npl,pl);glPopMatrix();}//? coordsyschange
 	}
 	virtual void tick(){
+		set(np);
+		d.set(nd);
+
 		chs.splice(chs.end(),chsadd);
 		for(auto g:chs)g->tick();
 		for(auto g:chsrm){chs.remove(g);delete g;}
 		chsrm.clear();
 
-//		set(np);
-//		d.set(nd);
 		if(!ppsaved){
 			pp.set(*this);
 			ppsaved=false;//?
@@ -463,8 +465,8 @@ public:
 //		dd.transl(p3(0,-9.82f,0).scale(.1f),dt());
 		d.transl(dd);
 		transl(d);
-//		np.set(*this);
-//		nd.set(this->d);
+		np.set(*this);
+		nd.set(this->d);
 
 //		const p3p gnd(p3(0,0,0),p3(0,1,0));
 //		const float dy=gety()-radius()-gnd.gety();
@@ -539,7 +541,7 @@ protected:
 	}
 	virtual bool oncol(glob&o){//? defunc
 		metrics::collisions++;
-//		flf();l()<<typeid(*this).name()<<"["<<this->getid()<<"]"<<endl;
+		flf();l()<<typeid(*this).name()<<"["<<this->getid()<<"]"<<endl;
 		if(!o.issolid())return true;
 		const p3&p1=*this;
 		const p3&u1=d;
@@ -565,10 +567,11 @@ protected:
 			return true;//? objects in collision but have no velocities
 		}
 		float t=min(t1,t2);
-		if(t<-1)t=max(t1,t2);
-		if(t>0)t=min(t1,t2);
-		if(t<-1||t>0){
-//			flf();l("no t with 0,1 t1=")<<t1<<" t2="<<t2<<" t="<<t<<"  u1("<<u1<<")"<<endl;
+		if(t<=-1)t=max(t1,t2);
+		if(t>=0)t=min(t1,t2);
+		if(t<=-1||t>=0){
+//			flf();l("t1=")<<t1<<" t2="<<t2<<" t="<<t<<"  u1("<<u1<<")"<<endl;
+//			return true;
 		}
 		np.set(p1).transl(u1,t);
 		p3 np2(p2);
@@ -809,7 +812,7 @@ public:
 		setblt(true).setitem(true);
 	}
 	void gldraw(){
-		this->colr=((GLuint)rnd(0,0x1000000)<<8)|(0x000000ff);
+//		this->colr=((GLuint)rnd(0,0x1000000)<<8)|(0x000000ff);
 		glColor4ubv((GLubyte*)&colr);
 		glutSolidSphere(radius(),20,20);
 	}
@@ -1063,7 +1066,7 @@ public:
 		if(hdlkeydn('j')){agl().transl(0,dt(turnrate),0);}
 		if(hdlkeydn('l')){agl().transl(0,-dt(turnrate),0);}
 		if(hdlkeydn(',')&&rocketry>0){f.transl(0,dt(rocketforce),0);rocketry-=dt(rocketfuelburnrate);}else{f.set(0,0,0);}
-		if(hdlkeydn('b')){d.set(0,0,0);}//? use fi and f=ma
+		if(hdlkeydn('b')){d.set(0,0,0);nd.set(0,0,0);}//? use fi and f=ma
 		if(hdlkeydn('t')){transl(mxv.yaxis(),dt(fwdbckrate));}
 		if(hdlkeydn('g')){transl(mxv.yaxis(),dt(-fwdbckrate));}
 		if(hdlkeytg('i')){if(flappery>0){fi.transl(0,smallflapimpulseforce,0);flappery-=smallflapfuelburn;}}
@@ -1440,6 +1443,7 @@ private:
 //		globx&o=*new obball(wold::get(),lv.scale(radius()+r).transl(sx,sy,sz).transl(*this),r);
 		glob&o=*new obball(wold::get(),*this,r);
 		o.getd().set(vv);
+		o.nd.set(vv);//?
 	}
 	void pl(const char*text,const GLfloat y=0,const GLfloat x=0,const GLfloat linewidth=1,const float scale=1){
 		const char*cp=text;
@@ -1513,7 +1517,7 @@ public:
 //		flf();
 		wn->onkeyb('j',true,0,0);
 //		wn->keydn('w',0,0);
-		wn->onkeyb(' ',true,0,0);
+//		wn->onkeyb(' ',true,0,0);
 		wn->onkeyb('c',true,0,0);
 	}
 };
@@ -1668,8 +1672,11 @@ namespace glut{
 			gloxnet::player=0;
 		}
 
-		players[0]->set(0,0,1.8f);
-		players[1]->set(0,0,-1.8f);
+		players[0]->set(10,0,1.8f);
+		players[0]->np.set(*players[0]);//?
+		players[0]->agl().set(0,90,0);
+		players[1]->set(-10,0,-1.8f);
+		players[1]->np.set(*players[1]);//?
 		wold&wd=wold::get();
 		wd.drawgrid=false;
 		wd.hidezplane=true;
@@ -1692,8 +1699,54 @@ namespace glut{
 				glutSetCursor(GLUT_CURSOR_NONE);
 			}
 		}
+
+
 		wd.glload();
-		new obray(wd);
+		{
+			const float r=1;
+			const float lft=1000;
+			const float bounc=1;
+			glob*g;
+			new obball(wd,p3(0,r,17),10*r,lft,bounc);
+			g=new obball(wd,p3(0,r,6),r,lft,bounc);
+			g->getd().set(0,0,-.05f);
+			g->nd.set(g->getd());//?
+			new obball(wd,p3(0,r,2),r,lft,bounc);
+			new obball(wd,p3(0,r,0),r,lft,bounc);
+			new obball(wd,p3(0,r,-2),r,lft,bounc);
+			new obball(wd,p3(0,r,-15),10*r,lft,bounc);
+		}
+//		{
+//			const float lft=60;
+//			const float v=1.f;//+rndn(.05f);
+//			const float r=.2f;//+rndn(.1f);
+//			glob*g;
+//			const int n=200;
+//			const float s=7.f;
+//			for(int i=0;i<n;i++){
+//				const float x=rndn(1.f);
+//				const float y=rndn(1.f);
+//				const float z=rndn(1.f);
+//				if(x*x+y*y+z*z>1)
+//					continue;
+//				g=new obball(wd,p3(x,6+y,-100+z),r*.5f,lft,.1f,100);
+//				g->getd().set(0,0,v);
+//				g->nd.set(g->getd());
+//			}
+//			const float dpth=.4f;
+//			bool odd=false;
+//			for(float zz=-dpth;zz<=dpth;zz+=2*r){
+//				odd=!odd;
+//				for(float yy=-s;yy<=s;yy+=r*3){
+//					for(float xx=-s;xx<=s;xx+=r*3){
+//						new obball(wd,p3(xx+1.5f*(odd?r:0),s+yy+2.f*(odd?r:0),zz),r,lft,.2f,1);
+////						g->getd().set(rndn(.0001f),rndn(.0001f),rndn(.0001f));
+////						g->nd.set(g->getd());
+//					}
+//				}
+//			}
+//		}
+//		new obray(wd);
 
 
 		glutDisplayFunc(draw);
