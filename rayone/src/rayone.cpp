@@ -45,9 +45,9 @@ namespace glox{
 	inline float rndo(const float tonotincluding){return tonotincluding*rand()/RAND_MAX;}
 	inline float rndn(const float s){return rnd(-s,s);}
 	const float pi=3.1415926f;
-	const float degtoradk=pi/180;
-	inline float degtorad(const float deg=1){return deg*degtoradk;}
-	ostringstream sts,inp;
+	const float degtoradp=pi/180;
+	inline float degtorad(const float deg=1){return deg*degtoradp;}
+	ostringstream sts;
 }
 using namespace glox;
 
@@ -80,12 +80,7 @@ public:
 	inline p3&scale(const float sx,const float sy,const float sz){x*=sx;y*=sy;z*=sz;return*this;}
 	inline bool operator==(const p3&p)const{return x==p.x&&y==p.y&&z==p.z;}
 	inline float dot(const p3&p)const{return x*p.x+y*p.y+z*p.z;}
-	inline p3&vecprod(const p3&v1,const p3&v2){
-		x=v1.y*v2.z-v1.z*v2.y;
-		y=v1.z*v2.x-v1.x*v2.z;
-		z=v1.x*v2.y-v1.y*v2.x;
-		return*this;
-	}
+	inline p3&vecprod(const p3&v1,const p3&v2){x=v1.y*v2.z-v1.z*v2.y;y=v1.z*v2.x-v1.x*v2.z;z=v1.x*v2.y-v1.y*v2.x;return*this;}
 	inline p3&pow2(){x*=x;y*=y;z*=z;return*this;}
 	inline float sum()const{return x+y+z;}
 	inline p3&mult(const p3&p){x*=p.x;y*=p.y;z*=p.z;return*this;}
@@ -136,46 +131,9 @@ public:
 static inline ostream&l(const char*s="",const char*file="",int lineno=0,const char*func=""){cerr<<file;if(lineno){cerr<<":"<<lineno;}cerr<<" "<<func<<"  "<<s;return cerr;}
 
 class m3{
-	float xx,yx,zx,ox;
-	float xy,yy,zy,oy;
-	float xz,yz,zz,oz;
-	float xo,yo,zo,oo;
-	m3&rotx(const float a){
-		const float c=cos(a),s=sin(a);
-		const float nyx=yx*c+zx*s,nyy=yy*c+zy*s,nyz=yz*c+zz*s,nyo=yo*c+zo*s;
-		const float nzx=zx*c-yx*s,nzy=zy*c-yy*s,nzz=zz*c-yz*s,nzo=zo*c-yo*s;
-		yx=nyx;yy=nyy;yz=nyz;yo=nyo;
-		zx=nzx;zy=nzy;zz=nzz;zo=nzo;
-		return*this;
-	}
-	m3&roty(const float a){
-		const float c=cos(a),s=sin(a);
-		const float nxx=xx*c-zx*s,nxy=xy*c-zy*s,nxz=xz*c-zz*s,nxo=xo*c-zo*s;
-		const float nzx=zx*c+xx*s,nzy=zy*c+xy*s,nzz=zz*c+xz*s,nzo=zo*c+xo*s;
-		xx=nxx;xy=nxy;xz=nxz;xo=nxo;
-		zx=nzx;zy=nzy;zz=nzz;zo=nzo;
-		return*this;
-	}
-	m3&rotz(const float a){
-		const float c=cos(a),s=sin(a);
-		const float nxx=xx*c+yx*s,nxy=xy*c+yy*s,nxz=xz*c+yz*s,nxo=xo*c+yo*s;
-		const float nyx=yx*c-xx*s,nyy=yy*c-xy*s,nyz=yz*c-xz*s,nyo=yo*c-xo*s;
-		xx=nxx;xy=nxy;xz=nxz;xo=nxo;
-		yx=nyx;yy=nyy;yz=nyz;yo=nyo;
-		return*this;
-	}
-//	m3&transl(const p3&p){
-//		const float x=p.getx();
-//		const float y=p.gety();
-//		const float z=p.getz();
-//		ox=xx*x+yx*y+zx*z+ox;
-//		oy=xy*x+yy*y+zy*z+oy;
-//		oz=xz*x+yz*y+zz*z+oz;
-//		return*this;
-//	}
-
 public:
 	inline m3(){metrics::m3s++;ident();}
+	inline m3(const p3&p,const p3&a){mw(p,a);}
 	inline m3(const GLfloat*m){metrics::m3s++;ident();set(m);}
 	inline ~m3(){metrics::m3s--;}
 	inline p3 xaxis()const{return p3(xx,xy,xz);}
@@ -302,6 +260,44 @@ public:
 //	}
 	friend ostream&operator<<(ostream&,const m3&);
 	friend istream&operator>>(istream&,m3&);
+private:
+	float xx,yx,zx,ox;
+	float xy,yy,zy,oy;
+	float xz,yz,zz,oz;
+	float xo,yo,zo,oo;
+	m3&rotx(const float a){
+		const float c=cos(a),s=sin(a);
+		const float nyx=yx*c+zx*s,nyy=yy*c+zy*s,nyz=yz*c+zz*s,nyo=yo*c+zo*s;
+		const float nzx=zx*c-yx*s,nzy=zy*c-yy*s,nzz=zz*c-yz*s,nzo=zo*c-yo*s;
+		yx=nyx;yy=nyy;yz=nyz;yo=nyo;
+		zx=nzx;zy=nzy;zz=nzz;zo=nzo;
+		return*this;
+	}
+	m3&roty(const float a){
+		const float c=cos(a),s=sin(a);
+		const float nxx=xx*c-zx*s,nxy=xy*c-zy*s,nxz=xz*c-zz*s,nxo=xo*c-zo*s;
+		const float nzx=zx*c+xx*s,nzy=zy*c+xy*s,nzz=zz*c+xz*s,nzo=zo*c+xo*s;
+		xx=nxx;xy=nxy;xz=nxz;xo=nxo;
+		zx=nzx;zy=nzy;zz=nzz;zo=nzo;
+		return*this;
+	}
+	m3&rotz(const float a){
+		const float c=cos(a),s=sin(a);
+		const float nxx=xx*c+yx*s,nxy=xy*c+yy*s,nxz=xz*c+yz*s,nxo=xo*c+yo*s;
+		const float nyx=yx*c-xx*s,nyy=yy*c-xy*s,nyz=yz*c-xz*s,nyo=yo*c-xo*s;
+		xx=nxx;xy=nxy;xz=nxz;xo=nxo;
+		yx=nyx;yy=nyy;yz=nyz;yo=nyo;
+		return*this;
+	}
+//	m3&transl(const p3&p){
+//		const float x=p.getx();
+//		const float y=p.gety();
+//		const float z=p.getz();
+//		ox=xx*x+yx*y+zx*z+ox;
+//		oy=xy*x+yy*y+zy*z+oy;
+//		oz=xz*x+yz*y+zz*z+oz;
+//		return*this;
+//	}
 };
 ostream&operator<<(ostream&os,const m3&m){
 	cout<<"["<<p3(m.xx,m.yx,m.zx)<<" "<<m.ox<<"] [";
@@ -385,25 +381,6 @@ public:
 		}
 		rmed=true;g.chsrm.push_back(this);
 	}
-	inline p3&agl(){return a;}//?
-	inline p3&getd(){return d;}//?
-	inline float mass()const{return m;}
-	inline glob&parent()const{return g;}
-	inline int getid()const{return id;}
-	inline const list<glob*>chls()const{return chs;}
-	inline float radius()const{return r;}
-	glob&radius(const float r){this->r=r;return*this;}
-	inline const p3&angle()const{return a;}
-	inline bool issolid()const{return bits&1;}
-	inline glob&setsolid(const bool b){if(b)bits|=1;else bits&=0xfffffffe;return*this;}
-	inline bool isblt()const{return bits&2;}
-	inline glob&setblt(const bool b){if(b)bits|=2;else bits&=0xfffffffd;return*this;}
-	inline bool iscoldetrec()const{return bits&4;}
-	inline glob&setcoldetrec(const bool b){if(b)bits|=4;else bits&=0xfffffffb;return*this;}
-	inline bool isitem()const{return bits&8;}
-	inline glob&setitem(const bool b){if(b)bits|=8;else bits&=0xfffffff8;return*this;}
-	inline bool iscolmx()const{return bits&16;}
-	inline glob&setcolmx(const bool b){if(b)bits|=16;else bits&=0xfffffff0;return*this;}
 	void coldet(glob&o){
 		const p3 wpthis=g.posinwcs(*this);
 		const p3 wpo=o.g.posinwcs(o);
@@ -468,17 +445,7 @@ public:
 		gldraw();
 		for(auto g:chs){glPushMatrix();g->culldraw(npl,pl);glPopMatrix();}//? coordsyschange
 	}
-	void drawboundingsphere(){
-		const GLbyte i=127;
-		glColor3b(i,i,i);
-		int detail=(int)(.4f*radius()*drawboundingspheresdetail);
-		if(detail<drawboundingspheresdetail)
-			detail=drawboundingspheresdetail;
-//		glShadeModel(GL_SMOOTH);
-		glutSolidSphere(radius(),detail,detail);
-	}
 	virtual void gldraw(){};
-	inline p3&dp(){return d;}
 	virtual void tick(){
 		chs.splice(chs.end(),chsadd);
 		for(auto g:chs)g->tick();
@@ -523,6 +490,36 @@ public:
 //				d.set(0,0,0);
 //			}
 //		}
+	}
+	inline p3&agl(){return a;}//?
+	inline p3&getd(){return d;}//?
+	inline float mass()const{return m;}
+	inline glob&parent()const{return g;}
+	inline int getid()const{return id;}
+	inline const list<glob*>chls()const{return chs;}
+	inline float radius()const{return r;}
+	glob&radius(const float r){this->r=r;return*this;}
+	inline const p3&angle()const{return a;}
+	inline p3&dp(){return d;}
+	inline bool iscolmx()const{return bits&16;}
+	inline glob&setblt(const bool b){if(b)bits|=2;else bits&=0xfffffffd;return*this;}
+	inline glob&setitem(const bool b){if(b)bits|=8;else bits&=0xfffffff8;return*this;}
+protected:
+	inline bool issolid()const{return bits&1;}
+	inline glob&setsolid(const bool b){if(b)bits|=1;else bits&=0xfffffffe;return*this;}
+	inline bool isblt()const{return bits&2;}
+	inline bool iscoldetrec()const{return bits&4;}
+	inline glob&setcoldetrec(const bool b){if(b)bits|=4;else bits&=0xfffffffb;return*this;}
+	inline bool isitem()const{return bits&8;}
+	inline glob&setcolmx(const bool b){if(b)bits|=16;else bits&=0xfffffff0;return*this;}
+	void drawboundingsphere(){
+		const GLbyte i=127;
+		glColor3b(i,i,i);
+		int detail=(int)(.4f*radius()*drawboundingspheresdetail);
+		if(detail<drawboundingspheresdetail)
+			detail=drawboundingspheresdetail;
+//		glShadeModel(GL_SMOOTH);
+		glutSolidSphere(radius(),detail,detail);
 	}
 	bool solvesecdegeq(const float a,const float b,const float c,float&t1,float&t2)const{
 		const float pt2=2*a;
@@ -618,8 +615,7 @@ protected:
 		mxmwagl=a;
 		mxmwpos=*this;
 
-		m3 m;
-		m.ident();
+		m3 m(mxmwpos,mxmwagl);
 		m.mw(mxmwpos,mxmwagl);
 
 		mxmw=g.mxmw;
