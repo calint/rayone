@@ -134,7 +134,7 @@ class m3{
 public:
 	inline m3(){metrics::m3s++;ident();}
 	inline m3(const p3&p,const p3&a){mw(p,a);}
-	inline m3(const GLfloat*m){metrics::m3s++;ident();set(m);}
+	inline m3(const GLfloat*m){metrics::m3s++;set(m);}
 	inline ~m3(){metrics::m3s--;}
 	inline p3 xaxis()const{return p3(xx,xy,xz);}
 	inline p3 yaxis()const{return p3(yx,yy,yz);}
@@ -809,11 +809,15 @@ class obball:public glob{
 	GLuint colr;
 public:
 	obball(glob&g,const p3&p,const float r=.05f,const float lft=2,const float bounciness=.3f,const float density=1,const GLuint colr=0xffffffff):glob(g,p,p3(90,0,0),r,bounciness,density),lft(lft),colr(colr){
-		setblt(true).setitem(true);
+		setitem(true);
 	}
 	void gldraw(){
 //		this->colr=((GLuint)rnd(0,0x1000000)<<8)|(0x000000ff);
-		glColor4ubv((GLubyte*)&colr);
+//		glColor4ubv((GLubyte*)&colr);
+		if(isblt())
+			glColor3f(1,0,0);
+		else
+			glColor3f(1,1,1);
 		glutSolidSphere(radius(),20,20);
 	}
 	virtual void tick(){
@@ -841,6 +845,9 @@ public:
 	void glload(){}
 	keyb&keyb()const{return*kb;}
 	void gldraw(){
+//		glCullFace(GL_FRONT);
+//		glColor3b(0,0,0);
+//		glutSolidSphere(radius(),20,20);
 		glDisable(GL_LIGHTING);
 		glDisable(GL_CULL_FACE);
 		const float r=radius();
@@ -1174,7 +1181,7 @@ class windo:public vehicle{
 	int wiprv=wi,hiprv=hi;
 	GLuint gltexshadowmap=0;
 	GLsizei shadowmapsize=512;
-	bool viewpointlht=false,drawshadows=false;
+	bool viewpointlht=false,drawshadows=true;
 public:
 	windo(glob&g=wold::get(),const p3&p=p3(),const p3&a=p3(),const float r=.1f,const int width=1024,const int height=512,const float zoom=1.5):vehicle(g,p,a,r,.25f),zoom(zoom),wi(width),hi(height){}
 	void reshape(const int width,const int height){sts<<"reshape("<<wi<<"x"<<hi<<")";wi=width;hi=height;}
@@ -1189,15 +1196,21 @@ public:
 				glGenTextures(1,&gltexshadowmap);
 				glBindTexture(GL_TEXTURE_2D,gltexshadowmap);
 				glTexImage2D(GL_TEXTURE_2D,0,GL_DEPTH_COMPONENT,shadowmapsize,shadowmapsize,0,GL_DEPTH_COMPONENT,GL_FLOAT,0);
-				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
-				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP);
-				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP);
+				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_BORDER);
+				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_BORDER);
+//				const GLfloat bordercolor[]={1,0,0,0};
+				const GLfloat bordercolor[]={0,0,0,0};
+				glTexParameterfv(GL_TEXTURE_2D,GL_TEXTURE_BORDER_COLOR,bordercolor);
+				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_COMPARE_MODE,GL_COMPARE_R_TO_TEXTURE);
+				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_COMPARE_FUNC,GL_LESS);
+				glTexParameteri(GL_TEXTURE_2D,GL_DEPTH_TEXTURE_MODE,GL_INTENSITY);
 			}
 
 			glMatrixMode(GL_PROJECTION);
 			glLoadIdentity();
-			gluPerspective(45,1,.01,100);
+			gluPerspective(80,1,.1,50);
 			glGetFloatv(GL_PROJECTION_MATRIX,mflhtproj);
 	//		const GLfloat lhtpos[]={7,1,7,1};
 			glMatrixMode(GL_MODELVIEW);
@@ -1212,16 +1225,18 @@ public:
 			glLoadMatrixf(mflhtproj);
 			glMatrixMode(GL_MODELVIEW);
 			glLoadMatrixf(mflhtview);
-			glViewport(0,0,shadowmapsize,shadowmapsize);
 			glDepthFunc(GL_LEQUAL);
-	//		glClearDepth(1);
+			glClearDepth(1);
 			glEnable(GL_DEPTH_TEST);
 			glCullFace(GL_FRONT);
 			glEnable(GL_CULL_FACE);
-			glClear(GL_DEPTH_BUFFER_BIT);
 			glShadeModel(GL_FLAT);
-	//		glColorMask(0,0,0,0);
-			glClear(GL_COLOR_BUFFER_BIT);
+			if(!viewpointlht)
+				glColorMask(0,0,0,0);
+			else
+				glClear(GL_COLOR_BUFFER_BIT);
+			glClear(GL_DEPTH_BUFFER_BIT);
+			glViewport(0,0,shadowmapsize,shadowmapsize);
 			wold::get().culldraw(0,0);//? cull viewfurst
 			glBindTexture(GL_TEXTURE_2D,gltexshadowmap);
 			glCopyTexSubImage2D(GL_TEXTURE_2D,0,0,0,0,0,shadowmapsize,shadowmapsize);
@@ -1235,6 +1250,7 @@ public:
 		glEnable(GL_COLOR_MATERIAL);
 		glCullFace(GL_BACK);
 		glEnable(GL_CULL_FACE);
+		glClearDepth(1);
 		glEnable(GL_DEPTH_TEST);
 		glViewport(0,0,wi,hi);
 		glMatrixMode(GL_PROJECTION);
@@ -1329,9 +1345,6 @@ public:
 		metrics::cullview=metrics::globsrend=0;
 		p3p cullplanes[]{backplane,rightplane,leftplane,topplane,btmplane};
 
-		glLightfv(GL_LIGHT1,GL_POSITION,lhtpos);
-		glEnable(GL_LIGHT1);
-		glEnable(GL_LIGHTING);
 		if(drawshadows){
 			m3 mxtex(mflhtview);
 			mxtex.mul(mflhtproj);
@@ -1357,16 +1370,19 @@ public:
 			glEnable(GL_TEXTURE_GEN_Q);
 			glBindTexture(GL_TEXTURE_2D,gltexshadowmap);
 			glEnable(GL_TEXTURE_2D);
-			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_COMPARE_MODE,GL_COMPARE_R_TO_TEXTURE);
-			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_COMPARE_FUNC,GL_LEQUAL);
-			glTexParameteri(GL_TEXTURE_2D,GL_DEPTH_TEXTURE_MODE,GL_INTENSITY);
-	//		glAlphaFunc(GL_GEQUAL,.99f);
-	//		glEnable(GL_ALPHA_TEST);
-
-			const GLfloat white[]={1,1,1,1};
-			glLightfv(GL_LIGHT1,GL_DIFFUSE,white);
-			glLightfv(GL_LIGHT1,GL_SPECULAR,white);
+//			glAlphaFunc(GL_GEQUAL,.99f);
+//			glEnable(GL_ALPHA_TEST);
 		}
+		glLightfv(GL_LIGHT1,GL_POSITION,lhtpos);
+//		glEnable(GL_LIGHT0);
+		glEnable(GL_LIGHT1);
+//		const GLfloat white[]={1,1,1,1};
+		const GLfloat amblht[]={.2f,.2f,.2f,1};
+		glLightfv(GL_LIGHT1,GL_AMBIENT,amblht);
+		glLightfv(GL_LIGHT1,GL_DIFFUSE,amblht);
+		glLightfv(GL_LIGHT1,GL_SPECULAR,amblht);
+		glEnable(GL_LIGHTING);
+		glShadeModel(GL_SMOOTH);
 		parent().culldraw(5,cullplanes);
 		if(drawshadows){
 			glDisable(GL_TEXTURE_2D);
@@ -1432,18 +1448,19 @@ private:
 		if(firereload<1)return;
 		firereload-=1;
 		const p3 lv=getmxv().zaxis().neg();
-		const float r=.02f;
+		const float r=.05f;
 		const float v=.2f;
-		p3 vv=p3(d).transl(p3(lv).scale(v).transl(0,r,0));
+		p3 vv=p3(d).transl(p3(lv).scale(v));
 		const float sprd=r/5;
 		const float sx=rnd(-sprd,sprd);
 		const float sy=rnd(-sprd,sprd);
 		const float sz=rnd(-sprd,sprd);
 		vv.transl(sx,sy,sz);
 //		globx&o=*new obball(wold::get(),lv.scale(radius()+r).transl(sx,sy,sz).transl(*this),r);
-		glob&o=*new obball(wold::get(),*this,r);
+		glob&o=*new obball(wold::get(),*this,r,4,.01f,1,0xffff0000);
 		o.getd().set(vv);
 		o.nd.set(vv);//?
+		o.setblt(true);
 	}
 	void pl(const char*text,const GLfloat y=0,const GLfloat x=0,const GLfloat linewidth=1,const float scale=1){
 		const char*cp=text;
@@ -1672,7 +1689,7 @@ namespace glut{
 			gloxnet::player=0;
 		}
 
-		players[0]->set(10,0,1.8f);
+		players[0]->set(10,.2f,1.8f);
 		players[0]->np.set(*players[0]);//?
 		players[0]->agl().set(0,90,0);
 		players[1]->set(-10,0,-1.8f);
@@ -1722,14 +1739,14 @@ namespace glut{
 //			const float r=.2f;//+rndn(.1f);
 //			glob*g;
 //			const int n=200;
-//			const float s=7.f;
+//			const float s=4.f;
 //			for(int i=0;i<n;i++){
 //				const float x=rndn(1.f);
 //				const float y=rndn(1.f);
 //				const float z=rndn(1.f);
 //				if(x*x+y*y+z*z>1)
 //					continue;
-//				g=new obball(wd,p3(x,6+y,-100+z),r*.5f,lft,.1f,100);
+//				g=new obball(wd,p3(x,6+y,-100+z),r*.5f,lft,.1f,10);
 //				g->getd().set(0,0,v);
 //				g->nd.set(g->getd());
 //			}
