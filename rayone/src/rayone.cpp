@@ -1679,7 +1679,6 @@ namespace glut{
 			cout<<"· connect to "<<gloxnet::host<<":"<<gloxnet::port<<endl;
 			gloxnet::start();
 		}
-
 		for(int i=0;i<nplayers;i++){
 			players[i]=new windo();
 			players[i]->setplayer(i);
@@ -1688,6 +1687,10 @@ namespace glut{
 			bot.wn=players[1];
 			gloxnet::player=0;
 		}
+
+
+
+
 
 		players[0]->set(10,.2f,1.8f);
 		players[0]->np.set(*players[0]);//?
@@ -1699,10 +1702,15 @@ namespace glut{
 		wd.hidezplane=true;
 		glob::drawboundingspheres=false;
 
+
+
+
+
+
 		windo*plr=players[gloxnet::player];
 		keyb=plr;
 		glutInit(&argc,argv);
-		glutIgnoreKeyRepeat(true);
+//		glutIgnoreKeyRepeat(true);
 		glutInitDisplayMode(GLUT_DOUBLE|GLUT_DEPTH|GLUT_RGBA);
 		if(plr->isgamemode()){
 			glutGameModeString("1366x768:32");
@@ -1716,6 +1724,47 @@ namespace glut{
 				glutSetCursor(GLUT_CURSOR_NONE);
 			}
 		}
+
+
+		const GLuint vtxshdr=glCreateShader(GL_VERTEX_SHADER);
+		const GLchar*vtxshdrsrc[]={"void main(){gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex;}"};
+		const GLint vtxshdrsrclen[]={GLint(strlen(vtxshdrsrc[0]))};
+		glShaderSource(vtxshdr,1,vtxshdrsrc,vtxshdrsrclen);
+		glCompileShader(vtxshdr);
+		GLint sts;
+		glGetShaderiv(vtxshdr,GL_COMPILE_STATUS,&sts);
+		const int n=4*1024;
+		char buf[n];
+		GLsizei nchs;
+		if(!sts){
+			glGetShaderInfoLog(vtxshdr,n,&nchs,buf);
+			cerr<<"vertex shader did not compile"<<endl<<buf;
+			throw"";
+		}
+		const GLuint frgshdr=glCreateShader(GL_FRAGMENT_SHADER);
+		const GLchar*frgshdrsrc[]={"void main(){gl_FragColor=vec4(gl_FragCoord.z/gl_FragCoord.w/15.,.5,.5,1);}"};
+		const GLint frgshdrsrclen[]={GLint(strlen(frgshdrsrc[0]))};
+		glShaderSource(frgshdr,1,frgshdrsrc,frgshdrsrclen);
+		glCompileShader(frgshdr);
+		glGetShaderiv(frgshdr,GL_COMPILE_STATUS,&sts);
+		if(!sts){
+			glGetShaderInfoLog(frgshdr,n,&nchs,buf);
+			cerr<<"frag shader did not compile"<<endl<<buf<<endl;
+			throw"";
+		}
+		const GLuint glprog=glCreateProgram();
+		glAttachShader(glprog,vtxshdr);
+		glAttachShader(glprog,frgshdr);
+		glLinkProgram(glprog);
+		glGetProgramiv(glprog,GL_LINK_STATUS,&sts);
+		if(!sts){
+			glGetProgramInfoLog(frgshdr,n,&nchs,buf);
+			cerr<<"program did not link"<<endl<<buf<<endl;
+			throw"";
+		}
+		glUseProgram(glprog);
+
+
 
 
 		wd.glload();
