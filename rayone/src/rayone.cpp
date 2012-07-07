@@ -1195,7 +1195,6 @@ public:
 		if(drawshadows){
 			if(!gltexshadowmap){
 				glGenTextures(1,&gltexshadowmap);
-//				flf();l()<<gltexshadowmap<<endl;
 				glBindTexture(GL_TEXTURE_2D,gltexshadowmap);
 				glTexImage2D(GL_TEXTURE_2D,0,GL_DEPTH_COMPONENT,shadowmapsize,shadowmapsize,0,GL_DEPTH_COMPONENT,GL_FLOAT,0);
 				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
@@ -1205,9 +1204,6 @@ public:
 //				const GLfloat bordercolor[]={1,0,0,0};
 				const GLfloat bordercolor[]={0,0,0,0};
 				glTexParameterfv(GL_TEXTURE_2D,GL_TEXTURE_BORDER_COLOR,bordercolor);
-//				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_COMPARE_MODE,GL_COMPARE_R_TO_TEXTURE);
-//				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_COMPARE_FUNC,GL_LESS);
-//				glTexParameteri(GL_TEXTURE_2D,GL_DEPTH_TEXTURE_MODE,GL_INTENSITY);
 			}
 			glMatrixMode(GL_PROJECTION);
 			glLoadIdentity();
@@ -1218,15 +1214,15 @@ public:
 			const p3 lhtlookat=p3(getmxv().zaxis().neg().scale(10)).transl(*this);
 			gluLookAt(lhtpos[0],lhtpos[1],lhtpos[2], lhtlookat.getx(),lhtlookat.gety(),lhtlookat.getz(), 0,1,0);
 			glGetFloatv(GL_MODELVIEW_MATRIX,mflhtview);
-			glMatrixMode(GL_PROJECTION);
-			glLoadMatrixf(mflhtproj);
-			glMatrixMode(GL_MODELVIEW);
-			glLoadMatrixf(mflhtview);
-			glDepthFunc(GL_LEQUAL);
-			glClearDepth(1);
+//			glMatrixMode(GL_PROJECTION);
+//			glLoadMatrixf(mflhtproj);
+//			glMatrixMode(GL_MODELVIEW);
+//			glLoadMatrixf(mflhtview);
+//			glDepthFunc(GL_LEQUAL);
+//			glClearDepth(1);
 			glEnable(GL_DEPTH_TEST);
 			glCullFace(GL_FRONT);
-			glEnable(GL_CULL_FACE);
+//			glEnable(GL_CULL_FACE);
 			glShadeModel(GL_FLAT);
 			if(!viewpointlht)
 				glColorMask(0,0,0,0);
@@ -1234,7 +1230,7 @@ public:
 				glClear(GL_COLOR_BUFFER_BIT);
 			glClear(GL_DEPTH_BUFFER_BIT);
 			glViewport(0,0,shadowmapsize,shadowmapsize);
-			glUseProgram(0);
+			glUseProgram(0);//?
 			wold::get().culldraw(0,0);//? cull viewfurst
 			glBindTexture(GL_TEXTURE_2D,gltexshadowmap);
 			glCopyTexSubImage2D(GL_TEXTURE_2D,0,0,0,0,0,shadowmapsize,shadowmapsize);
@@ -1245,12 +1241,12 @@ public:
 		}
 		glClearColor(.3f,.3f,1,1);
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-		glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE) ;
-		glEnable(GL_COLOR_MATERIAL);
+//		glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE) ;
+//		glEnable(GL_COLOR_MATERIAL);
 		glCullFace(GL_BACK);
-		glEnable(GL_CULL_FACE);
-		glClearDepth(1);
-		glEnable(GL_DEPTH_TEST);
+//		glEnable(GL_CULL_FACE);
+//		glClearDepth(1);
+//		glEnable(GL_DEPTH_TEST);
 		glViewport(0,0,wi,hi);
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
@@ -1262,10 +1258,10 @@ public:
 		glLoadIdentity();
 		gluLookAt(getx(),gety(),getz(), lookat.getx(),lookat.gety(),lookat.getz(), 0,1,0);
 		GLfloat mf[16];glGetFloatv(GL_MODELVIEW_MATRIX,mf);
+		glLoadIdentity();
 		const p3 xinv=p3(mf[0],mf[4],mf[8]);
 		const p3 yinv=p3(mf[1],mf[5],mf[9]);
 		const p3 zinv=p3(mf[2],mf[6],mf[10]);
-		glLoadIdentity();
 
 		const p3p backplane(*this,zinv);
 		const float viewangle_rad=degtorad(viewangle_deg);
@@ -1316,8 +1312,8 @@ public:
 		parent().culldraw(5,cullplanes);
 		metrics::dtrend=clk::timerdt();
 		if(dodrawhud){
-			glDisable(GL_DEPTH_TEST);
-			glDisable(GL_CULL_FACE);
+//			glDisable(GL_DEPTH_TEST);
+//			glDisable(GL_CULL_FACE);
 			glMatrixMode(GL_MODELVIEW);
 			glLoadIdentity();
 			glMatrixMode(GL_PROJECTION);
@@ -1553,7 +1549,7 @@ unsigned short obray::fnt_09[]={0x0252,0x0220,0x0621,0x0642,0x0451,0x0324,0x0612
 
 class obcorpqb:public glob{
 	static int n;
-	float a,drscl,dr;
+	float a,drscl;
 public:
 	obcorpqb(glob&pt,const p3&p=p3(),const p3&a=p3(),const float r=1):glob(pt,p,a,r),a(.25f*n++),drscl(.5){
 		setcolmx(true);
@@ -1566,9 +1562,9 @@ public:
 		const float dz=0;
 		const float r=1;
 		transl(dt(dx),dt(dy),dt(dz));
-		dr=drscl*sin(a);
+		const float dr=drscl*sin(a);
 		radius(r+dr);
-		glob::tick();
+//		glob::tick();
 	}
 };
 int obcorpqb::n=0;
@@ -1576,11 +1572,9 @@ int obcorpqb::n=0;
 
 class obcorp:public glob{
 	static const float s;
-	float f,ff;
 public:
 	obcorp(glob&pt,const p3&p=p3(),const p3&a=p3()):glob(pt,p,a){
 		setcolmx(true);
-//		radius(s+1.57f).setsolid(false);
 		const float ds=.1f*s;
 		const float dz=.5f*s;
 		for(float zz=-s;zz<=s;zz+=dz)
@@ -1593,8 +1587,8 @@ public:
 	}
 	void gldraw(){
 //		glShadeModel(GL_FLAT);
-		glEnable(GL_CULL_FACE);
-		glFrontFace(GL_CCW);
+//		glEnable(GL_CULL_FACE);
+//		glFrontFace(GL_CCW);
 		glColor4f(.5,.5,.5,1);
 	}
 };
