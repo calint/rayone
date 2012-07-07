@@ -1549,6 +1549,59 @@ protected:
 unsigned short obray::fnt_az[]={0x0552,0x0771,0x0212,0x0774,0x0737,0x0137,0x0651,0x0571,0x0220,0x0122,0x0531,0x0610,0x0770,0x0530,0x0252,0x1770,0x4770,0x0160,0x0324,0x0270,0x0650,0x0250,0x0775,0x0525,0x0225,0x0630};
 unsigned short obray::fnt_09[]={0x0252,0x0220,0x0621,0x0642,0x0451,0x0324,0x0612,0x0247,0x2702,0x2452};
 
+
+
+class obcorpqb:public glob{
+	static int n;
+	float a,drscl,dr;
+public:
+	obcorpqb(glob&pt,const p3&p=p3(),const p3&a=p3(),const float r=1):glob(pt,p,a,r),a(.25f*n++),drscl(.5){
+		setcolmx(true);
+	}
+	void gldraw(){glutSolidSphere(radius(),4,3);}
+	void tick(){
+		const float s=.1f;
+		const float dx=rnd(-s,s);
+		const float dy=rnd(-s,s);
+		const float dz=0;
+		const float r=1;
+		transl(dt(dx),dt(dy),dt(dz));
+		dr=drscl*sin(a);
+		radius(r+dr);
+		glob::tick();
+	}
+};
+int obcorpqb::n=0;
+
+
+class obcorp:public glob{
+	static const float s;
+	float f,ff;
+public:
+	obcorp(glob&pt,const p3&p=p3(),const p3&a=p3()):glob(pt,p,a){
+		setcolmx(true);
+//		radius(s+1.57f).setsolid(false);
+		const float ds=.1f*s;
+		const float dz=.5f*s;
+		for(float zz=-s;zz<=s;zz+=dz)
+			for(float xx=-s;xx<=s;xx+=ds)
+				for(float yy=-s;yy<=s;yy+=ds){
+					if(sqrt(xx*xx+yy*yy+zz*zz)>s)
+						continue;
+					new obcorpqb(pt,p3(xx,yy,zz).transl(p),p3(90,0,0));
+				}
+	}
+	void gldraw(){
+//		glShadeModel(GL_FLAT);
+		glEnable(GL_CULL_FACE);
+		glFrontFace(GL_CCW);
+		glColor4f(.5,.5,.5,1);
+	}
+};
+const float obcorp::s=7;
+
+
+
 namespace glut{
 	bool multiplayer=false;
 	const int nplayers=2;
@@ -1618,7 +1671,7 @@ namespace glut{
 		players[1]->np.set(*players[1]);//?
 		wold&wd=wold::get();
 		wd.drawgrid=false;
-		wd.hidezplane=true;
+		wd.hidezplane=false;
 		glob::drawboundingspheres=false;
 
 
@@ -1693,20 +1746,21 @@ namespace glut{
 
 
 		wd.glload();
-		{
-			const float r=1;
-			const float lft=1000;
-			const float bounc=1;
-			glob*g;
-			new obball(wd,p3(0,r,17),10*r,lft,bounc);
-			g=new obball(wd,p3(0,r,6),r,lft,bounc);
-			g->getd().set(0,0,-.05f);
-			g->nd.set(g->getd());//?
-			new obball(wd,p3(0,r,2),r,lft,bounc);
-			new obball(wd,p3(0,r,0),r,lft,bounc);
-			new obball(wd,p3(0,r,-2),r,lft,bounc);
-			new obball(wd,p3(0,r,-15),10*r,lft,bounc);
-		}
+		new obcorp(wd,p3(0,4.2f,-6.5f));
+//		{
+//			const float r=1;
+//			const float lft=1000;
+//			const float bounc=1;
+//			glob*g;
+//			new obball(wd,p3(0,r,17),10*r,lft,bounc);
+//			g=new obball(wd,p3(0,r,6),r,lft,bounc);
+//			g->getd().set(0,0,-.05f);
+//			g->nd.set(g->getd());//?
+//			new obball(wd,p3(0,r,2),r,lft,bounc);
+//			new obball(wd,p3(0,r,0),r,lft,bounc);
+//			new obball(wd,p3(0,r,-2),r,lft,bounc);
+//			new obball(wd,p3(0,r,-15),10*r,lft,bounc);
+//		}
 //		{
 //			const float lft=60;
 //			const float v=1.f;//+rndn(.05f);
