@@ -1174,6 +1174,7 @@ private:
 		}
 	}
 };
+static GLuint glprog=0;
 class windo:public vehicle{
 	bool dodrawhud=false,gamemode=false,fullscr=false,consolemode=false;
 	float zoom;
@@ -1194,6 +1195,7 @@ public:
 		if(drawshadows){
 			if(!gltexshadowmap){
 				glGenTextures(1,&gltexshadowmap);
+//				flf();l()<<gltexshadowmap<<endl;
 				glBindTexture(GL_TEXTURE_2D,gltexshadowmap);
 				glTexImage2D(GL_TEXTURE_2D,0,GL_DEPTH_COMPONENT,shadowmapsize,shadowmapsize,0,GL_DEPTH_COMPONENT,GL_FLOAT,0);
 				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
@@ -1203,24 +1205,19 @@ public:
 //				const GLfloat bordercolor[]={1,0,0,0};
 				const GLfloat bordercolor[]={0,0,0,0};
 				glTexParameterfv(GL_TEXTURE_2D,GL_TEXTURE_BORDER_COLOR,bordercolor);
-				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_COMPARE_MODE,GL_COMPARE_R_TO_TEXTURE);
-				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_COMPARE_FUNC,GL_LESS);
-				glTexParameteri(GL_TEXTURE_2D,GL_DEPTH_TEXTURE_MODE,GL_INTENSITY);
+//				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_COMPARE_MODE,GL_COMPARE_R_TO_TEXTURE);
+//				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_COMPARE_FUNC,GL_LESS);
+//				glTexParameteri(GL_TEXTURE_2D,GL_DEPTH_TEXTURE_MODE,GL_INTENSITY);
 			}
-
 			glMatrixMode(GL_PROJECTION);
 			glLoadIdentity();
 			gluPerspective(80,1,.1,50);
 			glGetFloatv(GL_PROJECTION_MATRIX,mflhtproj);
-	//		const GLfloat lhtpos[]={7,1,7,1};
 			glMatrixMode(GL_MODELVIEW);
 			glLoadIdentity();
 			const p3 lhtlookat=p3(getmxv().zaxis().neg().scale(10)).transl(*this);
 			gluLookAt(lhtpos[0],lhtpos[1],lhtpos[2], lhtlookat.getx(),lhtlookat.gety(),lhtlookat.getz(), 0,1,0);
-	//		gluLookAt(lhtpos[0],lhtpos[1],lhtpos[2], 0,3,0, 0,1,0);
-	//		glTranslatef(-lhtpos[0],-lhtpos[1],-lhtpos[2]);
 			glGetFloatv(GL_MODELVIEW_MATRIX,mflhtview);
-
 			glMatrixMode(GL_PROJECTION);
 			glLoadMatrixf(mflhtproj);
 			glMatrixMode(GL_MODELVIEW);
@@ -1237,12 +1234,14 @@ public:
 				glClear(GL_COLOR_BUFFER_BIT);
 			glClear(GL_DEPTH_BUFFER_BIT);
 			glViewport(0,0,shadowmapsize,shadowmapsize);
+			glUseProgram(0);
 			wold::get().culldraw(0,0);//? cull viewfurst
 			glBindTexture(GL_TEXTURE_2D,gltexshadowmap);
 			glCopyTexSubImage2D(GL_TEXTURE_2D,0,0,0,0,0,shadowmapsize,shadowmapsize);
 			if(viewpointlht)
 				return;
 			glColorMask(1,1,1,1);
+			glUseProgram(glprog);
 		}
 		glClearColor(.3f,.3f,1,1);
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
@@ -1257,148 +1256,68 @@ public:
 		glLoadIdentity();
 		const float viewangle_deg=45*zoom;
 		gluPerspective(viewangle_deg,(GLdouble)wi/hi,.01,100);
+		const p3 lookat=p3(getmxv().zaxis().neg()).transl(*this);
+		gluLookAt(getx(),gety(),getz(), lookat.getx(),lookat.gety(),lookat.getz(), 0,1,0);
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
-		const p3 lookat=p3(getmxv().zaxis().neg()).transl(*this);
 		gluLookAt(getx(),gety(),getz(), lookat.getx(),lookat.gety(),lookat.getz(), 0,1,0);
 		GLfloat mf[16];glGetFloatv(GL_MODELVIEW_MATRIX,mf);
 		const p3 xinv=p3(mf[0],mf[4],mf[8]);
 		const p3 yinv=p3(mf[1],mf[5],mf[9]);
 		const p3 zinv=p3(mf[2],mf[6],mf[10]);
+		glLoadIdentity();
 
 		const p3p backplane(*this,zinv);
-
 		const float viewangle_rad=degtorad(viewangle_deg);
 		const float scrdst=(wi/2)/tan(viewangle_rad)/zoom;
 		const float ww=wi/4;
 		const float hh=hi/4;
-
-//		flf();l()<<"scrdst="<<scrdst<<"   zaxis("<<zaxis<<")"<<endl;
 		p3 ptr(*this);
 		ptr.transl(p3(zinv).neg().scale(scrdst));
 		ptr.transl(p3(xinv).scale(ww));
 		ptr.transl(p3(yinv).scale(hh));
-//		flf();l()<<ptr<<endl;
-		glPushMatrix();
-		glTranslatef(ptr.getx(),ptr.gety(),ptr.getz());
-		glColor3b(127,127,127);
-		glutSolidCube(2);
-		glPopMatrix();
-
 		p3 pbr(*this);
 		pbr.transl(p3(zinv).neg().scale(scrdst));
 		pbr.transl(p3(xinv).scale(ww));
 		pbr.transl(p3(yinv).scale(-hh));
-//		flf();l()<<ptr<<endl;
-		glPushMatrix();
-		glTranslatef(pbr.getx(),pbr.gety(),pbr.getz());
-		glColor3b(127,0,0);
-		glutSolidCube(2);
-		glPopMatrix();
-
 		p3 pbl(*this);
 		pbl.transl(p3(zinv).neg().scale(scrdst));
 		pbl.transl(p3(xinv).scale(-ww));
 		pbl.transl(p3(yinv).scale(-hh));
-//		flf();l()<<ptr<<endl;
-		glPushMatrix();
-		glTranslatef(pbl.getx(),pbl.gety(),pbl.getz());
-		glColor3b(127,127,0);
-		glutSolidCube(2);
-		glPopMatrix();
-
 		p3 ptl(*this);
 		ptl.transl(p3(zinv).neg().scale(scrdst));
 		ptl.transl(p3(xinv).scale(-ww));
 		ptl.transl(p3(yinv).scale( hh));
-//		flf();l()<<ptr<<endl;
-		glPushMatrix();
-		glTranslatef(ptl.getx(),ptl.gety(),ptl.getz());
-		glColor3b(127,0,127);
-		glutSolidCube(2);
-		glPopMatrix();
-
 		//? farzplane
-
 		p3 rightplanenml(*this,p3());
 		rightplanenml.vecprod(pbr,ptr).norm();
-//		flf();l()<<"rightplanenml("<<rightplanenml<<endl;
 		p3p rightplane(*this,rightplanenml);
-
-
 		p3 leftplanenml(*this,p3());
 		leftplanenml.vecprod(ptl,pbl).norm();
-//		flf();l()<<"leftplanenml("<<leftplanenml<<endl;
 		p3p leftplane(*this,leftplanenml);
-
 		p3 topplanenml(*this,p3());
 		topplanenml.vecprod(ptr,ptl).norm();
-//		flf();l()<<"topplanenml("<<topplanenml<<endl;
 		p3p topplane(*this,topplanenml);
-
 		p3 btmplanenml(*this,p3());
 		btmplanenml.vecprod(pbl,pbr).norm();
-//		flf();l()<<"btmplanenml("<<btmplanenml<<endl;
 		p3p btmplane(*this,btmplanenml);
-
-
 		metrics::cullview=metrics::globsrend=0;
 		p3p cullplanes[]{backplane,rightplane,leftplane,topplane,btmplane};
-
 		if(drawshadows){
-			m3 mxtex(mflhtview);
-			mxtex.mul(mflhtproj);
-			const GLfloat texshadowmapbias[]={.5f,0,0,0, 0,.5f,0,0, 0,0,.5f,0, .5f,.5f,.5f,1};
-			mxtex.mul(m3(texshadowmapbias));
-
-			GLfloat v[4];
-			glTexGeni(GL_S,GL_TEXTURE_GEN_MODE,GL_EYE_LINEAR);
-			mxtex.xplane(v);
-			glTexGenfv(GL_S,GL_EYE_PLANE,v);
-			glEnable(GL_TEXTURE_GEN_S);
-			glTexGeni(GL_T,GL_TEXTURE_GEN_MODE,GL_EYE_LINEAR);
-			mxtex.yplane(v);
-			glTexGenfv(GL_T,GL_EYE_PLANE,v);
-			glEnable(GL_TEXTURE_GEN_T);
-			glTexGeni(GL_R,GL_TEXTURE_GEN_MODE,GL_EYE_LINEAR);
-			mxtex.zplane(v);
-			glTexGenfv(GL_R,GL_EYE_PLANE,v);
-			glEnable(GL_TEXTURE_GEN_R);
-			glTexGeni(GL_Q,GL_TEXTURE_GEN_MODE,GL_EYE_LINEAR);
-			mxtex.wplane(v);
-			glTexGenfv(GL_Q,GL_EYE_PLANE,v);
-			glEnable(GL_TEXTURE_GEN_Q);
+			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D,gltexshadowmap);
-			glEnable(GL_TEXTURE_2D);
-//			glAlphaFunc(GL_GEQUAL,.99f);
-//			glEnable(GL_ALPHA_TEST);
+			glMatrixMode(GL_TEXTURE);
+			const GLfloat bias[]={.5f,0,0,0, 0,.5f,0,0, 0,0,.5f,0, .5f,.5f,.5f,1};
+			glLoadMatrixf(bias);
+			glMultMatrixf(mflhtproj);
+			glMultMatrixf(mflhtview);
+			glMatrixMode(GL_MODELVIEW);
 		}
-		glLightfv(GL_LIGHT1,GL_POSITION,lhtpos);
-//		glEnable(GL_LIGHT0);
-		glEnable(GL_LIGHT1);
-//		const GLfloat white[]={1,1,1,1};
-		const GLfloat amblht[]={.2f,.2f,.2f,1};
-		glLightfv(GL_LIGHT1,GL_AMBIENT,amblht);
-		glLightfv(GL_LIGHT1,GL_DIFFUSE,amblht);
-		glLightfv(GL_LIGHT1,GL_SPECULAR,amblht);
-		glEnable(GL_LIGHTING);
-		glShadeModel(GL_SMOOTH);
 		parent().culldraw(5,cullplanes);
-		if(drawshadows){
-			glDisable(GL_TEXTURE_2D);
-			glDisable(GL_TEXTURE_GEN_S);
-			glDisable(GL_TEXTURE_GEN_T);
-			glDisable(GL_TEXTURE_GEN_R);
-			glDisable(GL_TEXTURE_GEN_Q);
-			glDisable(GL_LIGHTING);
-			glDisable(GL_ALPHA_TEST);
-		}
 		metrics::dtrend=clk::timerdt();
 		if(dodrawhud){
 			glDisable(GL_DEPTH_TEST);
 			glDisable(GL_CULL_FACE);
-			glDisable(GL_LIGHTING);
-			glDisable(GL_BLEND);
 			glMatrixMode(GL_MODELVIEW);
 			glLoadIdentity();
 			glMatrixMode(GL_PROJECTION);
@@ -1727,7 +1646,7 @@ namespace glut{
 
 
 		const GLuint vtxshdr=glCreateShader(GL_VERTEX_SHADER);
-		const GLchar*vtxshdrsrc[]={"void main(){gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex;}"};
+		const GLchar*vtxshdrsrc[]={"void main(){gl_TexCoord[0]=gl_TextureMatrix[0]*gl_ModelViewMatrix*gl_Vertex;gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex;gl_FrontColor=gl_Color;}"};
 		const GLint vtxshdrsrclen[]={GLint(strlen(vtxshdrsrc[0]))};
 		glShaderSource(vtxshdr,1,vtxshdrsrc,vtxshdrsrclen);
 		glCompileShader(vtxshdr);
@@ -1742,7 +1661,7 @@ namespace glut{
 			throw"";
 		}
 		const GLuint frgshdr=glCreateShader(GL_FRAGMENT_SHADER);
-		const GLchar*frgshdrsrc[]={"void main(){gl_FragColor=vec4(gl_FragCoord.z/gl_FragCoord.w/15.,.5,.5,1);}"};
+		const GLchar*frgshdrsrc[]={"uniform sampler2D ushadow0;void main(){vec4 shado;shado=texture2DProj(ushadow0,gl_TexCoord[0]);float la=shado.z<gl_TexCoord[0].z/gl_TexCoord[0].w?.5:.7;gl_FragColor=la*gl_Color;}"};
 		const GLint frgshdrsrclen[]={GLint(strlen(frgshdrsrc[0]))};
 		glShaderSource(frgshdr,1,frgshdrsrc,frgshdrsrclen);
 		glCompileShader(frgshdr);
@@ -1752,7 +1671,7 @@ namespace glut{
 			cerr<<"frag shader did not compile"<<endl<<buf<<endl;
 			throw"";
 		}
-		const GLuint glprog=glCreateProgram();
+		glprog=glCreateProgram();
 		glAttachShader(glprog,vtxshdr);
 		glAttachShader(glprog,frgshdr);
 		glLinkProgram(glprog);
@@ -1762,6 +1681,12 @@ namespace glut{
 			cerr<<"program did not link"<<endl<<buf<<endl;
 			throw"";
 		}
+
+
+
+		const GLint ushadow0=glGetUniformLocation(glprog,"ushadow0");
+		if(ushadow0==-1)throw"ushadow0 not found";
+		glUniform1i(ushadow0,0);
 		glUseProgram(glprog);
 
 
