@@ -15,7 +15,7 @@ namespace glox{
 		clock_t t1=t0;
 		int tk=0;
 		inline void timerrestart(){t1=clock();}
-		inline clock_t timerdclk(){return clock()-t1;}
+//		inline clock_t timerdclk(){return clock()-t1;}
 		inline float timerdt(){return (float)(clock()-t1)/CLOCKS_PER_SEC;}
 	}
 	namespace metrics{
@@ -27,15 +27,14 @@ namespace glox{
 		int p3s;
 		int m3s;
 		int collisions;
-		int globos;
-		int mwrefresh;
+		int mwrfsh;
 		int mpmul;
 		int mmmul;
 		int ngrids;
 		float dtcoldetgrd;
 		float dtcoldetbrute;
 		float dtnet;
-		int cullview;
+		int viewcull;
 		int globsrend;
 		int rays;
 		float rayone;
@@ -57,7 +56,7 @@ class p3{
 	float x,y,z;
 public:
 	inline p3():x(0),y(0),z(0){metrics::p3s++;}
-	inline p3(const p3&p){x=p.x;y=p.y;z=p.z;metrics::p3s++;}
+	inline p3(const p3&p){metrics::p3s++;x=p.x;y=p.y;z=p.z;}
 	inline p3(const float x,const float y,const float z):x(x),y(y),z(z){metrics::p3s++;}
 	inline p3(const p3&from,const p3&to):x(to.x-from.x),y(to.y-from.y),z(to.z-from.z){metrics::p3s++;}
 	inline p3(const p3&from,const p3&to,const float len):x(to.x-from.x),y(to.y-from.y),z(to.z-from.z){metrics::p3s++;norm(len);}
@@ -84,6 +83,7 @@ public:
 	inline p3&pow2(){x*=x;y*=y;z*=z;return*this;}
 	inline float sum()const{return x+y+z;}
 	inline p3&mult(const p3&p){x*=p.x;y*=p.y;z*=p.z;return*this;}
+	inline p3&clr(){x=y=z=0;return*this;}
 	p3&norm(const float length=1){
 		float q=sqrt(x*x+y*y+z*z);
 		if(q==0){
@@ -133,7 +133,7 @@ static inline ostream&l(const char*s="",const char*file="",int lineno=0,const ch
 class m3{
 public:
 	inline m3(){metrics::m3s++;ident();}
-	inline m3(const p3&p,const p3&a){mw(p,a);}
+	inline m3(const p3&p,const p3&a){metrics::m3s++;mw(p,a);}
 	inline m3(const GLfloat*m){metrics::m3s++;set(m);}
 	inline ~m3(){metrics::m3s--;}
 	inline p3 xaxis()const{return p3(xx,xy,xz);}
@@ -172,13 +172,6 @@ public:
 		xo=m[ 3];yo=m[ 7];zo=m[11];oo=m[15];
 		return*this;
 	}
-//	m3&settransposed(const GLfloat m[16]){//?
-//		xx=m[ 0];yx=m[ 1];zx=m[ 2];ox=m[ 3];
-//		xy=m[ 4];yy=m[ 5];zy=m[ 6];oy=m[ 7];
-//		xz=m[ 8];yz=m[ 9];zz=m[10];oz=m[11];
-//		xo=m[12];yo=m[13];zo=m[14];oo=m[15];
-//		return*this;
-//	}
 	m3&mul(const m3&m){
 		metrics::mmmul++;
 		const float nxx=m.xx*xx+m.yx*xy+m.zx*xz+m.ox*xo;
@@ -208,56 +201,6 @@ public:
 
 		return*this;
 	}
-//	m3&mult(const m3&m){
-//		metrics::mmmul++;
-//		float nxx=xx*m.xx+yx*m.xy+zx*m.xz+ox*m.xo;
-//		float nyx=xx*m.yx+yx*m.yy+zx*m.yz+ox*m.yo;
-//		float nzx=xx*m.zx+yx*m.zy+zx*m.zz+ox*m.zo;
-//		float nox=xx*m.ox+yx*m.oy+zx*m.oz+ox*m.oo;
-//
-//		float nxy=xy*m.xx+yy*m.xy+zy*m.xz+oy*m.xo;
-//		float nyy=xy*m.yx+yy*m.yy+zy*m.yz+oy*m.yo;
-//		float nzy=xy*m.zx+yy*m.zy+zy*m.zz+oy*m.zo;
-//		float noy=xy*m.ox+yy*m.oy+zy*m.oz+oy*m.oo;
-//
-//		float nxz=xz*m.xx+yz*m.xy+zz*m.xz+oz*m.xo;
-//		float nyz=xz*m.yx+yz*m.yy+zz*m.yz+oz*m.yo;
-//		float nzz=xz*m.zx+yz*m.zy+zz*m.zz+oz*m.zo;
-//		float noz=xz*m.ox+yz*m.oy+zz*m.oz+oz*m.oo;
-//
-//		float nxo=xo*m.xx+yo*m.xy+zo*m.xz+oo*m.xo;
-//		float nyo=xo*m.yx+yo*m.yy+zo*m.yz+oo*m.yo;
-//		float nzo=xo*m.zx+yo*m.zy+zo*m.zz+oo*m.zo;
-//		float noo=xo*m.ox+yo*m.oy+zo*m.oz+oo*m.oo;
-//
-//		xx=nxx;yx=nyx;zx=nzx;ox=nox;
-//		xy=nxy;yy=nyy;zy=nzy;oy=noy;
-//		xz=nxz;yz=nyz;zz=nzz;oz=noz;
-//		xo=nxo;yo=nyo;zo=nzo;oo=noo;
-//
-//		return*this;
-//	}
-//	m3&set(const GLfloat m[16]){
-//		xx=m[ 0];yx=m[ 1];zx=m[ 2];ox=m[ 3];
-//		xy=m[ 4];yy=m[ 5];zy=m[ 6];oy=m[ 7];
-//		xz=m[ 8];yz=m[ 9];zz=m[10];oz=m[11];
-//		xo=m[12];yo=m[13];zo=m[14];oo=m[15];
-//		return*this;
-//	}
-//	m3 inv()const{
-//		GLfloat m[16];
-//		m[0 ]=xx;m[ 1]=yx;m[ 2]=zx;m[3]=ox;
-//		m[4 ]=xy;m[ 5]=yy;m[ 6]=zy;m[7]=oy;
-//		m[8 ]=xz;m[ 9]=yz;m[10]=zz;m[11]=oz;
-//		m[12]=xo;m[13]=yo;m[14]=zo;m[15]=oo;
-//
-//		GLfloat mout[16];
-//		gluInvertMatrix(m,mout);
-//
-//		m3 mx;
-//		mx.set(mout);
-//		return mx;
-//	}
 	friend ostream&operator<<(ostream&,const m3&);
 	friend istream&operator>>(istream&,m3&);
 private:
@@ -289,15 +232,6 @@ private:
 		yx=nyx;yy=nyy;yz=nyz;yo=nyo;
 		return*this;
 	}
-//	m3&transl(const p3&p){
-//		const float x=p.getx();
-//		const float y=p.gety();
-//		const float z=p.getz();
-//		ox=xx*x+yx*y+zx*z+ox;
-//		oy=xy*x+yy*y+zy*z+oy;
-//		oz=xz*x+yz*y+zz*z+oz;
-//		return*this;
-//	}
 };
 ostream&operator<<(ostream&os,const m3&m){
 	cout<<"["<<p3(m.xx,m.yx,m.zx)<<" "<<m.ox<<"] [";
@@ -309,32 +243,16 @@ ostream&operator<<(ostream&os,const m3&m){
 istream&operator>>(istream&is,m3&m){
 	p3 p;
 	is.ignore();
-	is>>p;
-	m.xx=p.getx();m.yx=p.gety();m.zx=p.getz();
-	is.ignore();
-	is>>m.ox;
-	is.ignore(3);
-	is>>p;
-	m.xy=p.getx();m.yy=p.gety();m.zy=p.getz();
-	is.ignore();
-	is>>m.oy;
-	is.ignore(3);
-	is>>p;
-	m.xz=p.getx();m.yz=p.gety();m.zz=p.getz();
-	is.ignore();
-	is>>m.oz;
-	is.ignore(3);
-	is>>p;
-	m.xo=p.getx();m.yo=p.gety();m.zo=p.getz();
-	is.ignore();
-	is>>m.oo;
-	is.ignore();
+	is>>p;m.xx=p.getx();m.yx=p.gety();m.zx=p.getz();is.ignore();is>>m.ox;is.ignore(3);
+	is>>p;m.xy=p.getx();m.yy=p.gety();m.zy=p.getz();is.ignore();is>>m.oy;is.ignore(3);
+	is>>p;m.xz=p.getx();m.yz=p.gety();m.zz=p.getz();is.ignore();is>>m.oz;is.ignore(3);
+	is>>p;m.xo=p.getx();m.yo=p.gety();m.zo=p.getz();is.ignore();is>>m.oo;is.ignore();
 	return is;
 }
-class p3p:public p3{
+class p3n:public p3{
 public:
 	p3 n;
-	p3p(const p3&p,const p3&n):p3(p),n(n){}
+	p3n(const p3&p,const p3&n):p3(p),n(n){}
 };
 
 #include <list>
@@ -347,7 +265,6 @@ class glob:public p3{
 	list<glob*>chsrm;
 	list<glob*>chsadd;
 	int bits;
-	m3 mmw;
 	m3 mxmw;
 	p3 mxmwpos;
 	p3 mxmwagl;
@@ -387,10 +304,10 @@ public:
 		const p3 wpo=o.g.posinwcs(o);
 		const p3 v(wpthis,wpo);
 		const float d=v.magn();//? magn2
-		const float r=radius()+o.radius();
+		const float rr=radius()+o.radius();
 		metrics::coldetsph++;
 //		flf();l()<<typeid(*this).name()<<"("<<wpthis<<")  "<<typeid(o).name()<<"("<<wpo<<")  "<<d<<"  "<<bv.r<<"   "<<o.bv.r<<endl;
-		if(d>=r){
+		if(d>=rr){
 			if(o.iscoldetrec()){
 				for(auto gg:o.chs)
 					coldet(*gg);
@@ -398,15 +315,9 @@ public:
 			}
 			return;
 		}
-		if(issolid()&&o.issolid()){//?
-//			o.np.set(o);
-//			o.nd.set(o.d);
+		if(issolid()&&o.issolid()){
 			oncol(o);
 			o.oncol(*this);
-//			this->set(np);
-//			this->d.set(nd);
-//			o.set(o.np);
-//			o.d.set(o.nd);
 			return;
 		}
 		if(issolid()&&!o.issolid()){
@@ -420,18 +331,18 @@ public:
 			return;
 		}
 	}
-	void culldraw(const int npl,const p3p pl[]){
+	void culldraw(const int npn,const p3n pn[]){
 //		flf();l("consider ")<<typeid(*this).name()<<"["<<id<<"]"<<endl;
 		const float r=radius();
-		for(int i=0;i<npl;i++){
-			const p3p&pp=pl[i];
+		for(int i=0;i<npn;i++){
+			const p3n&pp=pn[i];
 			const p3 v(pp,*this);
 			const float t=v.dot(pp.n);
 //			flf();l("t=")<<t<<"  "<<"v("<<v<<")"<<endl;
 			if(t>0){// infront
 				if(t>r){
 //					flf();l("culled at p=(")<<*this<<")  r="<<r<<endl;
-					metrics::cullview++;
+					metrics::viewcull++;
 					return;
 				}
 			}
@@ -444,53 +355,26 @@ public:
 		glRotatef(a.getz(),0,0,1);
 		if(drawboundingspheres)drawboundingsphere();
 		gldraw();
-		for(auto g:chs){glPushMatrix();g->culldraw(npl,pl);glPopMatrix();}//? coordsyschange
+		for(auto g:chs){glPushMatrix();g->culldraw(npn,pn);glPopMatrix();}//? coordsyschange
 	}
 	virtual void tick(){
-		set(np);
 		d.set(nd);
-
+		set(np);
 		chs.splice(chs.end(),chsadd);
 		for(auto g:chs)g->tick();
 		for(auto g:chsrm){chs.remove(g);delete g;}
 		chsrm.clear();
-
 		if(!ppsaved){
 			pp.set(*this);
 			ppsaved=false;//?
 		}
 //		flf();l()<<"f("<<f<<") fi("<<fi<<") m("<<m<<") dd("<<dd<<") d("<<d<<") ("<<*this<<") dt("<<dt()<<") "<<endl;
 		dd=p3(f).transl(fi).scale(1/m).scale(dt());
-		fi.set(0,0,0);
-//		dd.transl(p3(0,-9.82f,0).scale(.1f),dt());
+		fi.clr();
 		d.transl(dd);
 		transl(d);
 		np.set(*this);
-		nd.set(this->d);
-
-//		const p3p gnd(p3(0,0,0),p3(0,1,0));
-//		const float dy=gety()-radius()-gnd.gety();
-//		if(dy<0){
-////			flf();l()<<endl;
-//			if(d.gety()!=0){
-//				const float t=dy/d.gety();
-//				transl(d,-t);
-//				p3 nml(gnd.n);
-//				nml.scale(d.dot(gnd.n));
-//				nml.scale(-2,-2,-2);
-//				d.transl(nml);
-//				transl(d,1-t);
-//				d.scale(bf);
-//				const float ndy=gety()-radius()-gnd.gety();
-//				if(ndy<0){
-//					flf();l("!!!! dy(")<<gety()-radius()<<")"<<endl;
-//					transl(0,-ndy,0);
-//				}
-//			}else{
-//				flf();l("!!!")<<endl;
-//				d.set(0,0,0);
-//			}
-//		}
+		nd.set(d);
 	}
 	virtual void gldraw(){};
 	inline p3&agl(){return a;}//?
@@ -500,7 +384,7 @@ public:
 	inline int getid()const{return id;}
 	inline const list<glob*>chls()const{return chs;}
 	inline float radius()const{return r;}
-	glob&radius(const float r){this->r=r;return*this;}
+	inline glob&radius(const float r){this->r=r;return*this;}
 	inline const p3&angle()const{return a;}
 	inline p3&dp(){return d;}
 	inline bool iscolmx()const{return bits&16;}
@@ -520,7 +404,6 @@ protected:
 		int detail=(int)(.4f*radius()*drawboundingspheresdetail);
 		if(detail<drawboundingspheresdetail)
 			detail=drawboundingspheresdetail;
-//		glShadeModel(GL_SMOOTH);
 		glutSolidSphere(radius(),detail,detail);
 	}
 	bool solvesecdegeq(const float a,const float b,const float c,float&t1,float&t2)const{
@@ -533,10 +416,6 @@ protected:
 		}
 		t1=(-b-pt1)/pt2;
 		t2=(-b+pt1)/pt2;
-//		if(t1!=t1&&t2!=t2){
-//			flf();l()<<" t1 and t2 nan "<<endl;
-//			return false;
-//		}
 		return true;
 	}
 	virtual bool oncol(glob&o){//? defunc
@@ -550,11 +429,6 @@ protected:
 		const float r1=radius();
 		const float r2=o.radius();
 		const float r0=r1+r2;
-
-//		const float a=p3(u1).pow2().sum()+p3(u2).pow2().sum()-2*u1.dot(u2);
-//		const float b=2*p1.dot(u1)-2*p2.dot(u1)-2*p1.dot(u2)+2*p2.dot(u2);
-//		const float c=-r0*r0+p3(p1).pow2().sum()+p3(p2).pow2().sum()-2*p1.dot(p2);
-
 		const p3 du=p3(u2,u1);
 		const float a=p3(du).dot(du);
 		const p3 dp=p3(p2,p1);
@@ -588,7 +462,6 @@ protected:
 //		v1.transl(vu1,-1);
 //		v1.transl(vu2, 1);
 
-		// m1*u1+m2*u2=m1*v1+m2*v2
 		const float m1=m;
 		const float m2=o.m;
 		const float mm=1/(m1+m2);
@@ -603,7 +476,12 @@ protected:
 	}
 
 protected:
-	p3 posinwcs(const p3&p){refreshmxmw();p3 d;mxmw.trnsf(p,d);return d;}
+	p3 posinwcs(const p3&p){
+		refreshmxmw();
+		p3 d;
+		mxmw.trnsf(p,d);//? ifidentskip
+		return d;
+	}
 	bool refreshmxmw(){
 		if(!&g)
 			return false;
@@ -613,16 +491,14 @@ protected:
 				return false;
 			}
 		}
-		metrics::mwrefresh++;
+		metrics::mwrfsh++;
 
 		mxmwagl=a;
 		mxmwpos=*this;
 
-		m3 m(mxmwpos,mxmwagl);
-		m.mw(mxmwpos,mxmwagl);
-
 		mxmw=g.mxmw;
-		mxmw.mul(m);//? if mxmw is ident skip
+		const m3 m(mxmwpos,mxmwagl);
+		mxmw.mul(m);//? ifidentskip
 
 		return true;
 	}
@@ -688,9 +564,10 @@ protected:
 		}
 	}
 };
+
 class keyb{
 public:
-	virtual~keyb(){}
+	virtual~keyb(){};//?
 	virtual void onkeyb(const char c=0,const bool pressed=false,const int x=0,const int y=0)=0;
 };
 
@@ -1102,7 +979,7 @@ protected:
 	bool hdlkeydn(const char key){
 		const int i=keyix(key);
 		if(!i)return false;
-		int s=gloxnet::keys[player][i];
+		const int s=gloxnet::keys[player][i];
 		if(s==0)return false;
 		if(s==2)return true;
 		if(s!=1)throw signl(2,"unknownstate");
@@ -1112,7 +989,7 @@ protected:
 	bool hdlkeytg(const char key){
 		const int i=keyix(key);
 		if(!i)return false;
-		int s=gloxnet::keys[player][i];
+		const int s=gloxnet::keys[player][i];
 		if(s==0)return false;
 		if(s==2)return false;
 		if(s!=1)return false;
@@ -1123,14 +1000,14 @@ private:
 	void keydn(const char key,const int x,const int y){
 		const int i=keyix(key);
 		if(!i)return;
-		int s=gloxnet::keys[player][i];
+		const int s=gloxnet::keys[player][i];
 		if(s==1)return;
 		gloxnet::keys[player][i]=1;
 		sts<<"keydn("<<(int)key<<",["<<x<<","<<y<<"],"<<key<<")";
 	}
 	void keyup(const char key,const int x,const int y){
 		const int i=keyix(key);
-		int s=gloxnet::keys[player][i];
+		const int s=gloxnet::keys[player][i];
 		if(s==0)return;
 		if(s==1)return;
 		if(s!=2)throw signl(2,"unknownstate");
@@ -1192,6 +1069,9 @@ public:
 		const GLfloat lhtpos[]={getx(),gety()+radius()*2,getz(),1};
 		GLfloat mflhtproj[16];
 		GLfloat mflhtview[16];
+		glEnable(GL_CULL_FACE);
+		glClearDepth(1);
+		glEnable(GL_DEPTH_TEST);
 		if(drawshadows){
 			if(!gltexshadowmap){
 				glGenTextures(1,&gltexshadowmap);
@@ -1214,16 +1094,7 @@ public:
 			const p3 lhtlookat=p3(getmxv().zaxis().neg().scale(10)).transl(*this);
 			gluLookAt(lhtpos[0],lhtpos[1],lhtpos[2], lhtlookat.getx(),lhtlookat.gety(),lhtlookat.getz(), 0,1,0);
 			glGetFloatv(GL_MODELVIEW_MATRIX,mflhtview);
-//			glMatrixMode(GL_PROJECTION);
-//			glLoadMatrixf(mflhtproj);
-//			glMatrixMode(GL_MODELVIEW);
-//			glLoadMatrixf(mflhtview);
-//			glDepthFunc(GL_LEQUAL);
-//			glClearDepth(1);
-			glEnable(GL_DEPTH_TEST);
 			glCullFace(GL_FRONT);
-//			glEnable(GL_CULL_FACE);
-			glShadeModel(GL_FLAT);
 			if(!viewpointlht)
 				glColorMask(0,0,0,0);
 			else
@@ -1241,12 +1112,7 @@ public:
 		}
 		glClearColor(.3f,.3f,1,1);
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-//		glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE) ;
-//		glEnable(GL_COLOR_MATERIAL);
 		glCullFace(GL_BACK);
-//		glEnable(GL_CULL_FACE);
-//		glClearDepth(1);
-//		glEnable(GL_DEPTH_TEST);
 		glViewport(0,0,wi,hi);
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
@@ -1262,10 +1128,9 @@ public:
 		const p3 xinv=p3(mf[0],mf[4],mf[8]);
 		const p3 yinv=p3(mf[1],mf[5],mf[9]);
 		const p3 zinv=p3(mf[2],mf[6],mf[10]);
-
-		const p3p backplane(*this,zinv);
+		const p3n backplane(*this,zinv);
 		const float viewangle_rad=degtorad(viewangle_deg);
-		const float scrdst=(wi/2)/tan(viewangle_rad)/zoom;
+		const float scrdst=(wi/2)/tan(viewangle_rad)/zoom;//?
 		const float ww=wi/4;
 		const float hh=hi/4;
 		p3 ptr(*this);
@@ -1287,18 +1152,18 @@ public:
 		//? farzplane
 		p3 rightplanenml(*this,p3());
 		rightplanenml.vecprod(pbr,ptr).norm();
-		p3p rightplane(*this,rightplanenml);
+		const p3n rightplane(*this,rightplanenml);
 		p3 leftplanenml(*this,p3());
 		leftplanenml.vecprod(ptl,pbl).norm();
-		p3p leftplane(*this,leftplanenml);
+		p3n leftplane(*this,leftplanenml);
 		p3 topplanenml(*this,p3());
 		topplanenml.vecprod(ptr,ptl).norm();
-		p3p topplane(*this,topplanenml);
+		const p3n topplane(*this,topplanenml);
 		p3 btmplanenml(*this,p3());
 		btmplanenml.vecprod(pbl,pbr).norm();
-		p3p btmplane(*this,btmplanenml);
-		metrics::cullview=metrics::globsrend=0;
-		p3p cullplanes[]{backplane,rightplane,leftplane,topplane,btmplane};
+		const p3n btmplane(*this,btmplanenml);
+		metrics::viewcull=metrics::globsrend=0;
+		const p3n cullplanes[]{backplane,rightplane,leftplane,topplane,btmplane};
 		if(drawshadows){
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D,gltexshadowmap);
@@ -1312,8 +1177,6 @@ public:
 		parent().culldraw(5,cullplanes);
 		metrics::dtrend=clk::timerdt();
 		if(dodrawhud){
-//			glDisable(GL_DEPTH_TEST);
-//			glDisable(GL_CULL_FACE);
 			glMatrixMode(GL_MODELVIEW);
 			glLoadIdentity();
 			glMatrixMode(GL_PROJECTION);
@@ -1405,7 +1268,7 @@ private:
 
 		oss.str("");
 		oss<<setprecision(2);
-		oss<<"frame("<<metrics::frames<<") globs("<<metrics::globs-metrics::globos<<") p3s("<<metrics::p3s<<") m3s("<<metrics::m3s<<") rays("<<metrics::rays<<")";
+		oss<<"frame("<<metrics::frames<<") globs("<<metrics::globs<<") p3s("<<metrics::p3s<<") m3s("<<metrics::m3s<<") rays("<<metrics::rays<<")";
 		y+=dy;pl(oss.str().c_str(),y,0,1,.1f);
 
 		oss.str("");
@@ -1419,12 +1282,12 @@ private:
 		y+=dy;pl(oss.str().c_str(),y,0,1,.1f);
 
 		oss.str("");
-		oss<<"sphcolsdet("<<metrics::coldetsph<<") sphcols("<<metrics::collisions<<")"<<" mxrfsh("<<metrics::mwrefresh<<")"<<" mvmul("<<metrics::mpmul<<") mmmul("<<metrics::mmmul<<") ";
+		oss<<"sphcolsdet("<<metrics::coldetsph<<") sphcols("<<metrics::collisions<<")"<<" mxrfsh("<<metrics::mwrfsh<<")"<<" mvmul("<<metrics::mpmul<<") mmmul("<<metrics::mmmul<<") ";
 		y+=dy;pl(oss.str().c_str(),y,0,1,.1f);
 
 		oss.str("");
 		oss<<setprecision(4);
-		oss<<"cullview("<<metrics::cullview<<") globstorend("<<metrics::globsrend<<")";
+		oss<<"cullview("<<metrics::viewcull<<") globstorend("<<metrics::globsrend<<")";
 		y+=dy;pl(oss.str().c_str(),y,0,1,.1f);
 
 		oss.str("");
@@ -1466,7 +1329,7 @@ class obray:public obtex,public keyb{
 	ostringstream oss;
 	int x,y;
 public:
-	obray(glob&g=wold::get(),const p3&p=p3(),const p3&a=p3(),const char*title="megarayone and orthonorm"):obtex(g,256,1,p,a),p(rgba+wihi*bp+bp),title(title),x(0),y(0){
+	obray(glob&g=wold::get(),const p3&p=p3(),const p3&a=p3(),const char*title="megarayone and orthonorm"):obtex(g,256,1,p,a),p(rgba+wihi*bp+bp),pnl(this->p),title(title),x(0),y(0){
 		setcolmx(true);
 	}
 	virtual void onkeyb(const char c,const bool pressed,const int x,const int y){
@@ -1618,9 +1481,9 @@ namespace glut{
 		}else{
 			bot.tick();
 		}
-		for(windo*o:players)
+		for(auto o:players)
 			o->handlekeys();
-		metrics::coldetsph=metrics::collisions=metrics::mwrefresh=metrics::mpmul=metrics::mmmul=metrics::rays=0;
+		metrics::coldetsph=metrics::collisions=metrics::mwrfsh=metrics::mpmul=metrics::mmmul=metrics::rays=0;
 		wold::get().tick();
 		clk::timerrestart();
 		metrics::rayone=clk::timerdt();
