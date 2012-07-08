@@ -507,14 +507,15 @@ public:
 	obtex(glob&g,const int wihi=4*32,const float s=1,const p3&p=p3(),const p3&a=p3(),const float r=1):glob(g,p,a,r),gltx(0),wihi(wihi),s(s){
 		rgba=new GLubyte[wihi*wihi*4];
 		zap();
-		glActiveTexture(GL_TEXTURE1);glGenTextures(1,&gltx);glBindTexture(GL_TEXTURE_2D,gltx);
+		glActiveTexture(GL_TEXTURE1);
+		glGenTextures(1,&gltx);glBindTexture(GL_TEXTURE_2D,gltx);
 		glPixelStorei(GL_UNPACK_ALIGNMENT,1);
 		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
 		glTexEnvf(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_DECAL);
-		if(glGetError())throw signl(0,"obtex");
+//		if(glGetError())throw signl(-3,"texture");
 		updtx();
 	}
 	~obtex(){delete rgba;}
@@ -1547,12 +1548,11 @@ namespace glut{
 
 
 		const GLuint vtxshdr=glCreateShader(GL_VERTEX_SHADER);
-//		const GLchar*vtxshdrsrc[]={"void main(){gl_TexCoord[0]=gl_TextureMatrix[0]*gl_ModelViewMatrix*gl_Vertex;gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex;gl_FrontColor=gl_Color;}"};
+		const GLchar*vtxshdrsrc[]={"void main(){gl_TexCoord[0]=gl_TextureMatrix[0]*gl_ModelViewMatrix*gl_Vertex;gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex;gl_FrontColor=gl_Color;}"};
 //		const GLchar*vtxshdrsrc[]={"varying vec3 vnml;void main(){gl_TexCoord[0]=gl_TextureMatrix[0]*gl_ModelViewMatrix*gl_Vertex;gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex;gl_FrontColor=gl_Color;vnml=normalize(gl_NormalMatrix*gl_Normal);}"};
 //		const GLchar*vtxshdrsrc[]={"void main(){gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex;gl_FrontColor=gl_Color;gl_TexCoord[1]=gl_Vertex;}"};
 //		const GLchar*vtxshdrsrc[]={"void main(){gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex;gl_FrontColor=gl_Color;gl_TexCoord[1]=gl_MultiTexCoord1;}"};
 //		const GLchar*vtxshdrsrc[]={"void main(){gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex;gl_FrontColor=gl_Color;gl_TexCoord[1]=gl_MultiTexCoord1;gl_TexCoord[2]=gl_TextureMatrix[2]*gl_ModelViewMatrix*gl_Vertex;}"};
-		const GLchar*vtxshdrsrc[]={"void main(){gl_TexCoord[2]=gl_TextureMatrix[2]*gl_ModelViewMatrix*gl_Vertex;gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex;gl_FrontColor=gl_Color;gl_TexCoord[1]=gl_MultiTexCoord1;}"};
 		const GLint vtxshdrsrclen[]={GLint(strlen(vtxshdrsrc[0]))};
 		glShaderSource(vtxshdr,1,vtxshdrsrc,vtxshdrsrclen);
 		glCompileShader(vtxshdr);
@@ -1567,11 +1567,10 @@ namespace glut{
 			throw signl();
 		}
 		const GLuint frgshdr=glCreateShader(GL_FRAGMENT_SHADER);
-//		const GLchar*frgshdrsrc[]={"uniform sampler2D ushad;void main(){vec4 shad;shad=texture2DProj(ushad,gl_TexCoord[0]);float la=shad.z<gl_TexCoord[0].z/gl_TexCoord[0].w?.5:.7;gl_FragColor=la*gl_Color;}"};
+		const GLchar*frgshdrsrc[]={"uniform sampler2D ushad;void main(){vec4 shad;shad=texture2DProj(ushad,gl_TexCoord[2]);float la=shad.z<gl_TexCoord[2].z/gl_TexCoord[0].w?.5:.7;gl_FragColor=la*gl_Color;}"};
 //		const GLchar*frgshdrsrc[]={"varying vec3 vnml;uniform sampler2D ushadow0;void main(){vec4 shado;shado=texture2DProj(ushadow0,gl_TexCoord[0]);float la=shado.z<gl_TexCoord[0].z/gl_TexCoord[0].w?0.:.2;float wa=gl_FragCoord.w;vec3 lhta=vec3(1,0,0);float ln=dot(vnml,lhta);gl_FragColor=clamp(la*.5+wa*.5+ln*.2,0.,1.)*gl_Color;}"};
 //		const GLchar*frgshdrsrc[]={"uniform sampler2D utex;void main(){vec4 tex;tex=texture2D(utex,gl_TexCoord[1].st);gl_FragColor=tex;}"};
 //		const GLchar*frgshdrsrc[]={"uniform sampler2D utex;uniform sampler2D ushad;void main(){vec4 tex;tex=texture2D(utex,gl_TexCoord[1].st);vec4 shad;shad=texture2DProj(ushad,gl_TexCoord[2]);float la=shad.z<gl_TexCoord[2].z/gl_TexCoord[2].w?-.2:0.;gl_FragColor=la*vec4(1,1,1,1)+tex+gl_Color;}"};
-		const GLchar*frgshdrsrc[]={"uniform sampler2D ushad;uniform sampler2D utex;void main(){vec4 shad;shad=texture2DProj(ushad,gl_TexCoord[2]);float la=shad.z<gl_TexCoord[2].z/gl_TexCoord[2].w?.5:1.;vec4 tex;tex=texture2D(utex,gl_TexCoord[1].st);gl_FragColor=la*(tex+gl_Color);}"};
 		const GLint frgshdrsrclen[]={GLint(strlen(frgshdrsrc[0]))};
 		glShaderSource(frgshdr,1,frgshdrsrc,frgshdrsrclen);
 		glCompileShader(frgshdr);
@@ -1592,25 +1591,23 @@ namespace glut{
 			throw signl();
 		}
 
-		glUseProgram(glprog);
+
 
 		const GLint ushad=glGetUniformLocation(glprog,"ushad");
 		if(ushad==-1)throw signl(0,"ushad not found");
-		glUniform1i(ushad,2);
+		glUniform1i(ushad,GL_TEXTURE2);
 
-		const GLint utex=glGetUniformLocation(glprog,"utex");
-		if(utex==-1)throw signl(0,"utex not found");
-		glUniform1i(utex,1);
+//		const GLint utex=glGetUniformLocation(glprog,"utex");
+//		if(utex==-1)throw signl(0,"utex not found");
+//		glUniform1i(utex,GL_TEXTURE1);
 
-		if(glGetError())throw signl(0,"glinit");
-
-
+		glUseProgram(glprog);
 
 
 
 
 		wd.glload();
-		new obray(wd);
+//		new obray(wd);
 		new obcorp(wd,p3(0,4.2f,-6.5f));
 //		{
 //			const float r=1;
