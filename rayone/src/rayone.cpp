@@ -1051,8 +1051,8 @@ public:
 		cout<<"\rframe("<<metrics::frames++<<")";
 		clk::timerrestart();
 		const GLfloat lhtpos[]={getx(),gety()+radius()*2,getz(),1};
-		GLfloat mflhtproj[16];
-		GLfloat mflhtview[16];
+//		GLfloat mflhtproj[16];
+		GLfloat mxtexlht[16];
 		glEnable(GL_CULL_FACE);
 		glClearDepth(1);
 		glEnable(GL_DEPTH_TEST);
@@ -1070,13 +1070,13 @@ public:
 			}
 			glMatrixMode(GL_PROJECTION);
 			glLoadIdentity();
-			gluPerspective(80,1,.1,50);
-			glGetFloatv(GL_PROJECTION_MATRIX,mflhtproj);
+//			glGetFloatv(GL_PROJECTION_MATRIX,mflhtproj);
 			glMatrixMode(GL_MODELVIEW);
 			glLoadIdentity();
+			gluPerspective(80,1,.1,50);
 			const p3 lhtlookat=p3(getmxv().zaxis().neg().scale(10)).transl(*this);
 			gluLookAt(lhtpos[0],lhtpos[1],lhtpos[2], lhtlookat.getx(),lhtlookat.gety(),lhtlookat.getz(), 0,1,0);
-			glGetFloatv(GL_MODELVIEW_MATRIX,mflhtview);
+			glGetFloatv(GL_MODELVIEW_MATRIX,mxtexlht);
 			glCullFace(GL_FRONT);
 			if(!viewpointlht)
 				glColorMask(0,0,0,0);
@@ -1103,12 +1103,14 @@ public:
 		gluPerspective(viewangle_deg,(GLdouble)wi/hi,.01,100);
 		const p3 lookat=p3(getmxv().zaxis().neg()).transl(*this);
 		gluLookAt(getx(),gety(),getz(), lookat.getx(),lookat.gety(),lookat.getz(), 0,1,0);
-		GLfloat mfcamproj[16];glGetFloatv(GL_PROJECTION_MATRIX,mfcamproj);
+//		GLfloat mfcamproj[16];glGetFloatv(GL_PROJECTION_MATRIX,mfcamproj);
+
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
 		gluLookAt(getx(),gety(),getz(), lookat.getx(),lookat.gety(),lookat.getz(), 0,1,0);
 		GLfloat mf[16];glGetFloatv(GL_MODELVIEW_MATRIX,mf);
 		glLoadIdentity();
+
 		const p3 xinv=p3(mf[0],mf[4],mf[8]);
 		const p3 yinv=p3(mf[1],mf[5],mf[9]);
 		const p3 zinv=p3(mf[2],mf[6],mf[10]);
@@ -1153,8 +1155,7 @@ public:
 			glMatrixMode(GL_TEXTURE);
 			const GLfloat bias[]={.5f,0,0,0, 0,.5f,0,0, 0,0,.5f,0, .5f,.5f,.5f,1};
 			glLoadMatrixf(bias);
-			glMultMatrixf(mflhtproj);
-			glMultMatrixf(mflhtview);
+			glMultMatrixf(mxtexlht);
 			glMatrixMode(GL_MODELVIEW);
 		}
 		const bool drawtexture=true;
