@@ -538,6 +538,7 @@ protected:
 	void updtx(){
 		glActiveTexture(GL_TEXTURE1);glBindTexture(GL_TEXTURE_2D,gltx);
 		glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA8,wihi,wihi,0,GL_RGBA,GL_UNSIGNED_BYTE,rgba);
+		if(glGetError())throw signl(0,"obtex");
 	}
 	void zap(){
 		int n=wihi*wihi;
