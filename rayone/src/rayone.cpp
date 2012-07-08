@@ -496,65 +496,67 @@ protected:
 };
 bool glob::drawboundingspheres=true;
 int glob::drawboundingspheresdetail=6;
-
-class obtex:public glob{
-	GLuint gltx;
-protected:
-	int wihi;
-	GLubyte*rgba;
-	float s;
-public:
-	obtex(glob&g,const int wihi=4*32,const float s=1,const p3&p=p3(),const p3&a=p3(),const float r=1):glob(g,p,a,r),gltx(0),wihi(wihi),s(s){
-		rgba=new GLubyte[wihi*wihi*4];
-		zap();
-		glGenTextures(1,&gltx);
-		glBindTexture(GL_TEXTURE_2D,gltx);
-		glPixelStorei(GL_UNPACK_ALIGNMENT,1);
-		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-		glTexEnvf(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_DECAL);
-		glBindTexture(GL_TEXTURE_2D,gltx);
-		if(glGetError())throw signl(-3,"texture");
-		updtx();
-	}
-	~obtex(){delete rgba;}
-	void gldraw(){
-		glDisable(GL_CULL_FACE);
-		glEnable(GL_TEXTURE_2D);
-		glBindTexture(GL_TEXTURE_2D,gltx);
-		glBegin(GL_QUADS);
-		glColor4b(0,0,0,0);
-		glTexCoord2f(0,0);
-		glVertex3f(-s,-s,0);
-		glTexCoord2f(1,0);
-		glVertex3f(s,-s,0);
-		glTexCoord2f(1,-1);
-		glVertex3f(s,s,0);
-		glTexCoord2f(0,-1);
-		glVertex3f(-s,s,0);
-		glEnd();
-		glDisable(GL_TEXTURE_2D);
-	}
-protected:
-	void updtx(){
-		glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA8,wihi,wihi,0,GL_RGBA,GL_UNSIGNED_BYTE,rgba);
-	}
-	void zap(){
-		int n=wihi*wihi;
-		GLubyte*pp=rgba;
-		while(n--){
-			GLubyte b=(GLubyte)rnd(0,50);
-			if(b<49)
-				b=0;
-			*pp++=b;
-			*pp++=b;
-			*pp++=b;
-			*pp++=255;
-		}
-	}
-};
+//
+//class obtex:public glob{
+//	GLuint gltx;
+//protected:
+//	int wihi;
+//	GLubyte*rgba;
+//	float s;
+//public:
+//	obtex(glob&g,const int wihi=4*32,const float s=1,const p3&p=p3(),const p3&a=p3(),const float r=1):glob(g,p,a,r),gltx(0),wihi(wihi),s(s){
+//		rgba=new GLubyte[wihi*wihi*4];
+//		zap();
+//		glActiveTexture(1);
+//		glGenTextures(1,&gltx);
+//		glBindTexture(GL_TEXTURE_2D,gltx);
+//		glPixelStorei(GL_UNPACK_ALIGNMENT,1);
+//		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
+//		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
+//		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+//		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+//		glTexEnvf(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_DECAL);
+////		if(glGetError())throw signl(-3,"texture");
+//		updtx();
+//	}
+//	~obtex(){delete rgba;}
+//	void gldraw(){
+//		glActiveTexture(1);
+//		glBindTexture(GL_TEXTURE_2D,gltx);
+//		glDisable(GL_CULL_FACE);
+//		glEnable(GL_TEXTURE_2D);
+//		glBegin(GL_QUADS);
+//		glColor4b(0,0,0,0);
+//		glTexCoord2f(0,0);
+//		glVertex3f(-s,-s,0);
+//		glTexCoord2f(1,0);
+//		glVertex3f(s,-s,0);
+//		glTexCoord2f(1,-1);
+//		glVertex3f(s,s,0);
+//		glTexCoord2f(0,-1);
+//		glVertex3f(-s,s,0);
+//		glEnd();
+//		glDisable(GL_TEXTURE_2D);
+//		glEnable(GL_CULL_FACE);
+//	}
+//protected:
+//	void updtx(){
+//		glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA8,wihi,wihi,0,GL_RGBA,GL_UNSIGNED_BYTE,rgba);
+//	}
+//	void zap(){
+//		int n=wihi*wihi;
+//		GLubyte*pp=rgba;
+//		while(n--){
+//			GLubyte b=(GLubyte)rnd(0,50);
+//			if(b<49)
+//				b=0;
+//			*pp++=b;
+//			*pp++=b;
+//			*pp++=b;
+//			*pp++=255;
+//		}
+//	}
+//};
 
 class keyb{
 public:
@@ -1307,99 +1309,99 @@ public:
 		wn->onkeyb('c',true,0,0);
 	}
 };
-
-class obray:public obtex,public keyb{
-	static unsigned short fnt_az[];
-	static unsigned short fnt_09[];
-	const static int fnt_w=4;
-	const static int fnt_h=4;
-	const static int bp=4;
-	GLubyte*p;
-	GLubyte*pnl;
-	const char*title;
-	ostringstream oss;
-	int x,y;
-public:
-	obray(glob&g=wold::get(),const p3&p=p3(),const p3&a=p3(),const char*title="megarayone and orthonorm"):obtex(g,256,1,p,a),p(rgba+wihi*bp+bp),pnl(this->p),title(title),x(0),y(0){
-		setcolmx(true);
-	}
-	virtual void onkeyb(const char c,const bool pressed,const int x,const int y){
-		if(pressed)
-			oss<<c;
-		this->x=x;this->y=y;
-	}
-	virtual void tick(){
-		obtex::tick();
-		GLuint*p=(GLuint*)rgba;
-		for(int y=0;y<wihi;y++){
-			for(int x=0;x<wihi;x++){
-				metrics::rays++;
-				*p++=ray(x,y);
-			}
-		}
-		*--p=0xff0000ff;
-		phom().prnt(title).nl().nl().nl().prnt(oss.str().c_str()).nl();
-		updtx();
-	}
-protected:
-	inline obray&phom(){p=rgba+wihi*bp+bp;return*this;}
-	inline obray&prnt(const char*s){return prnt(strlen(s),s);}
-	obray&prnt(const size_t len,const char*s){
-		pnl=p;
-		for(size_t i=0;i<len;i++){
-			const char ch=s[i];
-			if(ch==0)
-				break;
-			unsigned short sch;
-			if(ch>='a'&&ch<='z')
-				sch=fnt_az[ch-'a'];
-			else if(ch>='0'&&ch<='9'){
-				sch=fnt_09[ch-'0'];
-			}else if(ch=='\n'){
-				p=pnl+fnt_h*wihi*bp;
-				pnl=p;
-				continue;
-			}else if(ch==127){
-				p-=fnt_w*bp;
-				continue;
-			}else if(iswspace(ch)){
-				sch=0x0020;
-			}
-			int h=fnt_h;
-			while(h--){
-				for(int w=fnt_w;w>0;w--){
-					if(sch&1){
-						*p++=255;
-						*p++=255;
-						*p++=255;
-						*p++=255;
-					}else{
-						p+=4;
-//						*p++=0;
-//						*p++=0;
-//						*p++=0;
-//						*p++=0;
-					}
-					sch>>=1;
-				}
-				p=p+wihi*bp-fnt_w*bp;
-			}
-			p=p-wihi*bp*fnt_h+fnt_w*bp;
-		}
-		pnl=p=pnl+fnt_h*wihi*bp;
-		return *this;
-	}
-	inline obray&nl(){p=pnl+=wihi*bp;return*this;}
-	GLuint ray(const float x,const float y){
-		if(x==y)
-			return 0xffffffff;
-		return ((GLuint)x<<24)|((GLuint)y<<8)|0xff;
-	}
-};
-unsigned short obray::fnt_az[]={0x0552,0x0771,0x0212,0x0774,0x0737,0x0137,0x0651,0x0571,0x0220,0x0122,0x0531,0x0610,0x0770,0x0530,0x0252,0x1770,0x4770,0x0160,0x0324,0x0270,0x0650,0x0250,0x0775,0x0525,0x0225,0x0630};
-unsigned short obray::fnt_09[]={0x0252,0x0220,0x0621,0x0642,0x0451,0x0324,0x0612,0x0247,0x2702,0x2452};
-
-
+//
+//class obray:public obtex,public keyb{
+//	static unsigned short fnt_az[];
+//	static unsigned short fnt_09[];
+//	const static int fnt_w=4;
+//	const static int fnt_h=4;
+//	const static int bp=4;
+//	GLubyte*p;
+//	GLubyte*pnl;
+//	const char*title;
+//	ostringstream oss;
+//	int x,y;
+//public:
+//	obray(glob&g=wold::get(),const p3&p=p3(),const p3&a=p3(),const char*title="megarayone and orthonorm"):obtex(g,256,1,p,a),p(rgba+wihi*bp+bp),pnl(this->p),title(title),x(0),y(0){
+//		setcolmx(true);
+//	}
+//	virtual void onkeyb(const char c,const bool pressed,const int x,const int y){
+//		if(pressed)
+//			oss<<c;
+//		this->x=x;this->y=y;
+//	}
+//	virtual void tick(){
+//		obtex::tick();
+//		GLuint*p=(GLuint*)rgba;
+//		for(int y=0;y<wihi;y++){
+//			for(int x=0;x<wihi;x++){
+//				metrics::rays++;
+//				*p++=ray(x,y);
+//			}
+//		}
+//		*--p=0xff0000ff;
+//		phom().prnt(title).nl().nl().nl().prnt(oss.str().c_str()).nl();
+//		updtx();
+//	}
+//protected:
+//	inline obray&phom(){p=rgba+wihi*bp+bp;return*this;}
+//	inline obray&prnt(const char*s){return prnt(strlen(s),s);}
+//	obray&prnt(const size_t len,const char*s){
+//		pnl=p;
+//		for(size_t i=0;i<len;i++){
+//			const char ch=s[i];
+//			if(ch==0)
+//				break;
+//			unsigned short sch;
+//			if(ch>='a'&&ch<='z')
+//				sch=fnt_az[ch-'a'];
+//			else if(ch>='0'&&ch<='9'){
+//				sch=fnt_09[ch-'0'];
+//			}else if(ch=='\n'){
+//				p=pnl+fnt_h*wihi*bp;
+//				pnl=p;
+//				continue;
+//			}else if(ch==127){
+//				p-=fnt_w*bp;
+//				continue;
+//			}else if(iswspace(ch)){
+//				sch=0x0020;
+//			}
+//			int h=fnt_h;
+//			while(h--){
+//				for(int w=fnt_w;w>0;w--){
+//					if(sch&1){
+//						*p++=255;
+//						*p++=255;
+//						*p++=255;
+//						*p++=255;
+//					}else{
+//						p+=4;
+////						*p++=0;
+////						*p++=0;
+////						*p++=0;
+////						*p++=0;
+//					}
+//					sch>>=1;
+//				}
+//				p=p+wihi*bp-fnt_w*bp;
+//			}
+//			p=p-wihi*bp*fnt_h+fnt_w*bp;
+//		}
+//		pnl=p=pnl+fnt_h*wihi*bp;
+//		return *this;
+//	}
+//	inline obray&nl(){p=pnl+=wihi*bp;return*this;}
+//	GLuint ray(const float x,const float y){
+//		if(x==y)
+//			return 0xffffffff;
+//		return ((GLuint)x<<24)|((GLuint)y<<8)|0xff;
+//	}
+//};
+//unsigned short obray::fnt_az[]={0x0552,0x0771,0x0212,0x0774,0x0737,0x0137,0x0651,0x0571,0x0220,0x0122,0x0531,0x0610,0x0770,0x0530,0x0252,0x1770,0x4770,0x0160,0x0324,0x0270,0x0650,0x0250,0x0775,0x0525,0x0225,0x0630};
+//unsigned short obray::fnt_09[]={0x0252,0x0220,0x0621,0x0642,0x0451,0x0324,0x0612,0x0247,0x2702,0x2452};
+//
+//
 
 class obcorpqb:public glob{
 	static int n;
@@ -1615,7 +1617,7 @@ namespace glut{
 //			const float r=.2f;//+rndn(.1f);
 //			glob*g;
 //			const int n=200;
-//			const float s=4.f;
+//			const float s=7.f;
 //			for(int i=0;i<n;i++){
 //				const float x=rndn(1.f);
 //				const float y=rndn(1.f);
