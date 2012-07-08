@@ -451,17 +451,10 @@ protected:
 		p3 np2(p2);
 		np2.transl(u2,t);
 		const p3 nml(np,np2,true);
-
 		p3 vu1(nml);
 		vu1.scale(u1.dot(nml));
-
 		p3 vu2(nml);
 		vu2.scale(u2.dot(nml));
-
-//		p3 v1(u1);
-//		v1.transl(vu1,-1);
-//		v1.transl(vu2, 1);
-
 		const float m1=m;
 		const float m2=o.m;
 		const float mm=1/(m1+m2);
@@ -486,11 +479,9 @@ protected:
 		if(!&g)
 			return false;
 		bool refrsh=g.refreshmxmw();
-		if(!refrsh){
-			if(mxmwpos==*this&&mxmwagl==a){
+		if(!refrsh)
+			if(mxmwpos==*this&&mxmwagl==a)
 				return false;
-			}
-		}
 		metrics::mwrfsh++;
 
 		mxmwagl=a;
@@ -863,7 +854,7 @@ namespace gloxnet{
 		hints.ai_socktype=SOCK_STREAM;
 		if(getaddrinfo(host,port,&hints,&ai)){flf();l(strerror(errno))<<endl;throw signl();}
 		sockfd=socket(ai->ai_family,ai->ai_socktype,ai->ai_protocol);
-		if(sockfd==-1){flf();l(strerror(errno))<<endl;return;}
+		if(sockfd==-1){flf();l(strerror(errno))<<endl;throw signl();}
 	//	flf();l()<<"socket "<<sockfd<<"  errno("<<errno<<")"<<endl;
 		if(connect(sockfd,ai->ai_addr,ai->ai_addrlen)){flf();l(strerror(errno))<<endl;throw signl();}
 		flf();l("connected")<<endl;
@@ -1568,7 +1559,7 @@ namespace glut{
 		if(!sts){
 			glGetShaderInfoLog(vtxshdr,n,&nchs,buf);
 			cerr<<"vertex shader did not compile"<<endl<<buf;
-			throw"";
+			throw signl();
 		}
 		const GLuint frgshdr=glCreateShader(GL_FRAGMENT_SHADER);
 		const GLchar*frgshdrsrc[]={"uniform sampler2D ushadow0;void main(){vec4 shado;shado=texture2DProj(ushadow0,gl_TexCoord[0]);float la=shado.z<gl_TexCoord[0].z/gl_TexCoord[0].w?.5:.7;gl_FragColor=la*gl_Color;}"};
@@ -1579,7 +1570,7 @@ namespace glut{
 		if(!sts){
 			glGetShaderInfoLog(frgshdr,n,&nchs,buf);
 			cerr<<"frag shader did not compile"<<endl<<buf<<endl;
-			throw"";
+			throw signl();
 		}
 		glprog=glCreateProgram();
 		glAttachShader(glprog,vtxshdr);
@@ -1589,7 +1580,7 @@ namespace glut{
 		if(!sts){
 			glGetProgramInfoLog(frgshdr,n,&nchs,buf);
 			cerr<<"program did not link"<<endl<<buf<<endl;
-			throw"";
+			throw signl();
 		}
 
 
