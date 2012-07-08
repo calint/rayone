@@ -1103,7 +1103,7 @@ public:
 			glColorMask(1,1,1,1);
 			glUseProgram(glprog);
 		}
-		glClearColor(.3f,.3f,1,1);
+		glClearColor(.1f,.1f,.5f,1);
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 		glCullFace(GL_BACK);
 		glViewport(0,0,wi,hi);
@@ -1215,11 +1215,11 @@ private:
 	}
 	float firereload=0;
 	void fire(){
-		firereload+=dt(20);if(firereload>1)firereload=1;
+		firereload+=dt(60);if(firereload>1)firereload=1;
 		if(firereload<1)return;
 		firereload-=1;
 		const p3 lv=getmxv().zaxis().neg();
-		const float r=.05f;
+		const float r=.02f;
 		const float v=.2f;
 		p3 vv=p3(d).transl(p3(lv).scale(v));
 		const float sprd=r/5;
@@ -1228,7 +1228,7 @@ private:
 		const float sz=rnd(-sprd,sprd);
 		vv.transl(sx,sy,sz);
 //		globx&o=*new obball(wold::get(),lv.scale(radius()+r).transl(sx,sy,sz).transl(*this),r);
-		glob&o=*new obball(wold::get(),*this,r,4,.01f,1,0xffff0000);
+		glob&o=*new obball(wold::get(),*this,r,4,1,1,0xffff0000);
 		o.getd().set(vv);
 		o.nd.set(vv);//?
 		o.setblt(true);
@@ -1447,6 +1447,7 @@ public:
 //		glFrontFace(GL_CCW);
 		glColor4f(.5,.5,.5,1);
 	}
+	void tick(){}
 };
 const float obcorp::s=7;
 
@@ -1549,7 +1550,8 @@ namespace glut{
 
 
 		const GLuint vtxshdr=glCreateShader(GL_VERTEX_SHADER);
-		const GLchar*vtxshdrsrc[]={"void main(){gl_TexCoord[0]=gl_TextureMatrix[0]*gl_ModelViewMatrix*gl_Vertex;gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex;gl_FrontColor=gl_Color;}"};
+//		const GLchar*vtxshdrsrc[]={"void main(){gl_TexCoord[0]=gl_TextureMatrix[0]*gl_ModelViewMatrix*gl_Vertex;gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex;gl_FrontColor=gl_Color;}"};
+		const GLchar*vtxshdrsrc[]={"varying vec3 vnml;void main(){gl_TexCoord[0]=gl_TextureMatrix[0]*gl_ModelViewMatrix*gl_Vertex;gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex;gl_FrontColor=gl_Color;vnml=normalize(gl_NormalMatrix*gl_Normal);}"};
 		const GLint vtxshdrsrclen[]={GLint(strlen(vtxshdrsrc[0]))};
 		glShaderSource(vtxshdr,1,vtxshdrsrc,vtxshdrsrclen);
 		glCompileShader(vtxshdr);
@@ -1564,7 +1566,8 @@ namespace glut{
 			throw signl();
 		}
 		const GLuint frgshdr=glCreateShader(GL_FRAGMENT_SHADER);
-		const GLchar*frgshdrsrc[]={"uniform sampler2D ushadow0;void main(){vec4 shado;shado=texture2DProj(ushadow0,gl_TexCoord[0]);float la=shado.z<gl_TexCoord[0].z/gl_TexCoord[0].w?.5:.7;gl_FragColor=la*gl_Color;}"};
+//		const GLchar*frgshdrsrc[]={"uniform sampler2D ushadow0;void main(){vec4 shado;shado=texture2DProj(ushadow0,gl_TexCoord[0]);float la=shado.z<gl_TexCoord[0].z/gl_TexCoord[0].w?.5:.7;gl_FragColor=la*gl_Color;}"};
+		const GLchar*frgshdrsrc[]={"varying vec3 vnml;uniform sampler2D ushadow0;void main(){vec4 shado;shado=texture2DProj(ushadow0,gl_TexCoord[0]);float la=shado.z<gl_TexCoord[0].z/gl_TexCoord[0].w?0.:.2;float wa=gl_FragCoord.w;vec3 lhta=vec3(1,0,0);float ln=dot(vnml,lhta);gl_FragColor=clamp(la*.5+wa*.5+ln*.2,0.,1.)*gl_Color;}"};
 		const GLint frgshdrsrclen[]={GLint(strlen(frgshdrsrc[0]))};
 		glShaderSource(frgshdr,1,frgshdrsrc,frgshdrsrclen);
 		glCompileShader(frgshdr);
