@@ -1522,7 +1522,7 @@ namespace glut{
 		players[1]->set(-10,0,-1.8f);
 		players[1]->np.set(*players[1]);//?
 		wold&wd=wold::get();
-		wd.drawgrid=false;
+		wd.drawgrid=true;
 		wd.hidezplane=false;
 		glob::drawboundingspheres=false;
 		wd.drawaxis=false;
