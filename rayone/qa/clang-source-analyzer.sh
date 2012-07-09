@@ -14,6 +14,6 @@ cmd="$scn $cc -o $bin $src\
 	-L/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries
 "&&
 echo $cmd&&
-$cmd>clang-source-analyzer.log&&
+$cmd&>clang-source-analyzer.log&&
 rm $bin&&
 echo
