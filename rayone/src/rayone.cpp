@@ -1085,7 +1085,7 @@ public:
 				glClear(GL_COLOR_BUFFER_BIT);
 			glClear(GL_DEPTH_BUFFER_BIT);
 			glViewport(0,0,shadowmapsize,shadowmapsize);
-			glUseProgram(0);//?
+			glUseProgram(0);//? depthbuffershader
 			wold::get().culldraw(0,0);//? cull viewfurst
 			if(viewpointlht)
 				return;
@@ -1115,7 +1115,7 @@ public:
 		const p3 xinv=p3(mf[0],mf[4],mf[8]);
 		const p3 yinv=p3(mf[1],mf[5],mf[9]);
 		const p3 zinv=p3(mf[2],mf[6],mf[10]);
-		const p3n backplane(*this,zinv);
+		const p3n backplane(*this,zinv);//? viewfurst
 		const float viewangle_rad=degtorad(viewangle_deg);
 		const float scrdst=(wi/2)/tan(viewangle_rad)/zoom;//?
 		const float ww=wi/4;
@@ -1158,11 +1158,6 @@ public:
 			glLoadMatrixf(bias);
 			glMultMatrixf(mxtexlht);
 			glMatrixMode(GL_MODELVIEW);
-		}
-		const bool drawtexture=true;
-		if(drawtexture){
-//			glActiveTexture(GL_TEXTURE1);
-//			glMatrixMode(GL_TEXTURE);
 		}
 		parent().culldraw(5,cullplanes);
 		metrics::dtrend=clk::timerdt();
