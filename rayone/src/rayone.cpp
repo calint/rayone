@@ -1044,7 +1044,7 @@ class windo:public vehicle{
 	int wiprv=wi,hiprv=hi;
 	GLuint gltexshadowmap=0;
 	GLsizei shadowmapsize=512;
-	bool viewpointlht=false,drawshadows=true;
+	bool viewpointlht=false,drawshadows=true,coki3d=false;
 public:
 	windo(glob&g=wold::get(),const p3&p=p3(),const p3&a=p3(),const float r=.1f,const int width=1024,const int height=512,const float zoom=1.5):vehicle(g,p,a,r,.25f),zoom(zoom),wi(width),hi(height){}
 	void reshape(const int width,const int height){sts<<"reshape("<<wi<<"x"<<hi<<")";wi=width;hi=height;}
