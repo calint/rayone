@@ -507,7 +507,8 @@ public:
 	obtex(glob&g,const int wihi=4*32,const float s=1,const p3&p=p3(),const p3&a=p3(),const float r=1):glob(g,p,a,r),gltx(0),wihi(wihi),s(s){
 		rgba=new GLubyte[wihi*wihi*4];
 		zap();
-		glActiveTexture(GL_TEXTURE1);glGenTextures(1,&gltx);glBindTexture(GL_TEXTURE_2D,gltx);
+		glGenTextures(1,&gltx);
+		glActiveTexture(GL_TEXTURE1);glBindTexture(GL_TEXTURE_2D,gltx);
 		glPixelStorei(GL_UNPACK_ALIGNMENT,1);
 		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
@@ -1480,8 +1481,8 @@ namespace glut{
 			o->handlekeys();
 		metrics::coldetsph=metrics::collisions=metrics::mwrfsh=metrics::mpmul=metrics::mmmul=metrics::rays=0;
 		wold::get().tick();
-		clk::timerrestart();
-		metrics::rayone=clk::timerdt();
+//		clk::timerrestart();
+//		metrics::rayone=clk::timerdt();
 		glutPostRedisplay();
 		glutTimerFunc((unsigned)value,timer,value);
 	}
