@@ -1090,9 +1090,9 @@ public:
 			if(viewpointlht)
 				return;
 			glActiveTexture(GL_TEXTURE2);glBindTexture(GL_TEXTURE_2D,gltexshadowmap);
-			glCopyTexSubImage2D(GL_TEXTURE_2D,0,0,0,0,0,shadowmapsize,shadowmapsize);
+			glCopyTexSubImage2D(GL_TEXTURE_2D,0,0,0,0,0,shadowmapsize,shadowmapsize);//? fbo
 			glColorMask(1,1,1,1);
-			glUseProgram(glprog);
+			glUseProgram(glprog);//? glprog.use()
 		}
 		glClearColor(.1f,.1f,.5f,1);
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
@@ -1159,7 +1159,7 @@ public:
 			glMultMatrixf(mxtexlht);
 			glMatrixMode(GL_MODELVIEW);
 		}
-		parent().culldraw(5,cullplanes);
+		parent().culldraw(5,cullplanes);//. rendleftrighti
 		metrics::dtrend=clk::timerdt();
 		if(dodrawhud){
 			glMatrixMode(GL_MODELVIEW);
