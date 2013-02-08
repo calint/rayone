@@ -1,6 +1,6 @@
 #ifndef __glox__
 #define __glox__
-
+static const char*appname="rayone";
 #include<iostream>
 using namespace std;
 
@@ -40,6 +40,7 @@ namespace glox{
 		float rayone;
 	}
 	inline float dt(const float f=1){return f*clk::dt;}
+	//? gloxrnd
 	inline float rnd(const float from,const float tonotincluding){return from+(tonotincluding-from)*rand()/RAND_MAX;}
 	inline float rndo(const float tonotincluding){return tonotincluding*rand()/RAND_MAX;}
 	inline float rndn(const float s){return rnd(-s,s);}
@@ -1487,6 +1488,7 @@ namespace glut{
 	void mousemov(const int x,const int y){players[gloxnet::player]->mousemov(x,y);}
 	static void mainsig(const int i){cerr<<" ••• terminated with signal "<<i<<endl;exit(i);}
 	int main(int argc,char**argv){
+		puts(appname);
 		for(int i=0;i<32;i++)signal(i,mainsig);//?
 		srand(0);
 		cout<<"glox";
