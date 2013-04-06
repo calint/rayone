@@ -1,5 +1,5 @@
-#ifndef __glox__
-#define __glox__
+#ifndef __rayone__
+#define __rayone__
 static const char*appname="rayone";
 #include<iostream>
 using namespace std;
@@ -8,7 +8,7 @@ using namespace std;
 
 namespace glox{
 	namespace clk{
-		int fps=60;
+		int fps=120;
 		int dtms=1000/fps;
 		float dt=dtms/1000.f;
 		clock_t t0=clock();
@@ -18,6 +18,14 @@ namespace glox{
 //		inline clock_t timerdclk(){return clock()-t1;}
 		inline float timerdt(){return (float)(clock()-t1)/CLOCKS_PER_SEC;}
 	}
+	class tmr{
+		clock_t t0;
+	public:
+		tmr():t0(clock()){}
+		inline void reset(){t0=clock();}
+//		inline clock_t timerdclk(){return clock()-t1;}
+		inline float dt(){return (float)(clock()-t0)/CLOCKS_PER_SEC;}
+	};
 	namespace metrics{
 		int globs;
 		int coldetsph;
@@ -1214,9 +1222,9 @@ private:
 	}
 	float firereload=0;
 	void fire(){
-		firereload+=dt(60);if(firereload>1)firereload=1;
-		if(firereload<1)return;
-		firereload-=1;
+//		firereload+=dt(60);if(firereload>1)firereload=1;
+//		if(firereload<1)return;
+//		firereload-=1;
 		const p3 lv=getmxv().zaxis().neg();
 		const float r=.02f;
 		const float v=.2f;
