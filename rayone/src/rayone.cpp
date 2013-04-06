@@ -6,6 +6,7 @@ using namespace std;
 
 #include<sstream>
 
+#include <sys/time.h>
 namespace glox{
 	namespace clk{
 		int fps=120;
@@ -19,12 +20,21 @@ namespace glox{
 		inline float timerdt(){return (float)(clock()-t1)/CLOCKS_PER_SEC;}
 	}
 	class tmr{
-		clock_t t0;
+		struct timeval t0;
 	public:
-		tmr():t0(clock()){}
-		inline void reset(){t0=clock();}
+		tmr(){restart();}
+		inline void restart(){
+		    gettimeofday(&t0,NULL);
+		}
 //		inline clock_t timerdclk(){return clock()-t1;}
-		inline float dt(){return (float)(clock()-t0)/CLOCKS_PER_SEC;}
+		inline float dt(){
+		    struct timeval tv;
+		    gettimeofday(&tv,NULL);
+			const time_t diff_s=tv.tv_sec-t0.tv_sec;
+			const int diff_us=tv.tv_usec-t0.tv_usec;
+
+			return (float)diff_s+diff_us/1000000.f;
+		}
 	};
 	namespace metrics{
 		int globs;
@@ -585,11 +595,13 @@ public:
 	grid(const float size,const p3&p=p3()):po(p),s(size),grds({0,0,0,0,0,0,0,0}){metrics::ngrids++;}
 	~grid(){metrics::ngrids--;clear();}
 	void gldraw(){
+		//? sphere in viewpyr check
 		const GLbyte c=(GLbyte)(po.gety()/15*127);
 		glColor3b(0,0,c);
 		glPushMatrix();
 		glTranslatef(po.getx(),po.gety(),po.getz());
 		glutWireCube(s*2);
+		//glutWireSphere(s,8,8);
 		glPopMatrix();
 		for(auto gr:grds){
 			if(!gr)
@@ -1054,11 +1066,14 @@ class windo:public vehicle{
 	GLuint gltexshadowmap=0;
 	GLsizei shadowmapsize=512;
 	bool viewpointlht=false,drawshadows=true,coki3d=false;
+	tmr drawtmr;
 public:
 	windo(glob&g=wold::get(),const p3&p=p3(),const p3&a=p3(),const float r=.1f,const int width=1024,const int height=512,const float zoom=1.5):vehicle(g,p,a,r,.25f),zoom(zoom),wi(width),hi(height){}
 	void reshape(const int width,const int height){sts<<"reshape("<<wi<<"x"<<hi<<")";wi=width;hi=height;}
 	void drawframe(){
-		cout<<"\rframe("<<metrics::frames++<<")";
+		const float freq=drawtmr.dt();
+		drawtmr.restart();
+		cout<<"\nframe("<<metrics::frames++<<") last frame dt="<<freq<<" s  fps ~"<<1/freq;
 		clk::timerrestart();
 		const GLfloat lhtpos[]={getx(),gety()+radius()*2,getz(),1};
 //		GLfloat mflhtproj[16];
@@ -1497,9 +1512,10 @@ namespace glut{
 	static void mainsig(const int i){cerr<<" ••• terminated with signal "<<i<<endl;exit(i);}
 	int main(int argc,char**argv){
 		puts(appname);
+//		const GLubyte*version=glGetString(GL_VERSION);
+//		if(version)printf("%s\n",version);
 		for(int i=0;i<32;i++)signal(i,mainsig);//?
 		srand(0);
-		cout<<"glox";
 		if(argc>2){
 			cout<<" multiplayer"<<endl;
 			multiplayer=true;
@@ -1622,7 +1638,7 @@ namespace glut{
 
 		wd.glload();
 		new obray(wd);
-		new obcorp(wd,p3(0,4.2f,-6.5f));
+//		new obcorp(wd,p3(0,4.2f,-6.5f));
 //		{
 //			const float r=1;
 //			const float lft=1000;
