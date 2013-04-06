@@ -19,23 +19,6 @@ namespace glox{
 //		inline clock_t timerdclk(){return clock()-t1;}
 		inline float timerdt(){return (float)(clock()-t1)/CLOCKS_PER_SEC;}
 	}
-	class tmr{
-		struct timeval t0;
-	public:
-		tmr(){restart();}
-		inline void restart(){
-		    gettimeofday(&t0,NULL);
-		}
-//		inline clock_t timerdclk(){return clock()-t1;}
-		inline float dt(){
-		    struct timeval tv;
-		    gettimeofday(&tv,NULL);
-			const time_t diff_s=tv.tv_sec-t0.tv_sec;
-			const int diff_us=tv.tv_usec-t0.tv_usec;
-
-			return (float)diff_s+diff_us/1000000.f;
-		}
-	};
 	namespace metrics{
 		int globs;
 		int coldetsph;
@@ -68,6 +51,20 @@ namespace glox{
 	ostringstream sts;
 }
 using namespace glox;
+
+class tmr{
+	struct timeval t0;
+public:
+	tmr(){restart();}
+	void restart(){gettimeofday(&t0,NULL);}
+	float dt(){
+	    struct timeval tv;
+	    gettimeofday(&tv,NULL);
+		const time_t diff_s=tv.tv_sec-t0.tv_sec;
+		const int diff_us=tv.tv_usec-t0.tv_usec;
+		return (float)diff_s+diff_us/1000000.f;
+	}
+};
 
 #include<cmath>
 
@@ -1638,7 +1635,7 @@ namespace glut{
 
 		wd.glload();
 		new obray(wd);
-//		new obcorp(wd,p3(0,4.2f,-6.5f));
+		new obcorp(wd,p3(0,4.2f,-6.5f));
 //		{
 //			const float r=1;
 //			const float lft=1000;
