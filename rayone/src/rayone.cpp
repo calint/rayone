@@ -39,6 +39,8 @@ namespace dbox{
 		int globsrend;
 		int rays;
 		float rayone;
+		int gridsculled;
+		int gridsrend;
 	}
 	inline float dt(const float f=1){return f*clk::dt;}
 	//? gloxrnd
@@ -626,8 +628,11 @@ public:
 	}
 	void culldraw(const bvol&bv){
 		const int c=bv.cull(po,s*1.41f);//? radius
-		if(c)
+		if(c){
+			metrics::gridsculled++;
 			return;
+		}
+		metrics::gridsrend++;
 		for(auto g:ls){glPushMatrix();g->culldraw(bv);glPopMatrix();}
 		for(auto g:lsmx){glPushMatrix();g->culldraw(bv);glPopMatrix();}
 		for(auto&g:grds)
@@ -704,6 +709,7 @@ public:
 	void glload(){}
 	keyb&keyb()const{return*kb;}
 	void gldraw(){
+//		flf();l("draw world");
 //		glCullFace(GL_FRONT);
 //		glColor3b(0,0,0);
 //		glutSolidSphere(radius(),20,20);
@@ -1388,6 +1394,7 @@ public:
 		const GLfloat lhtpos[]={getx(),gety()+radius()*2,getz(),1};
 //		GLfloat mflhtproj[16];
 		GLfloat mxtexlht[16];
+
 		glEnable(GL_CULL_FACE);
 		glClearDepth(1);
 		glEnable(GL_DEPTH_TEST);
@@ -1421,7 +1428,7 @@ public:
 			glViewport(0,0,shadowmapsize,shadowmapsize);
 			glUseProgram(0);//? depthbuffershader
 			const bvol pns(0,0);
-			wold::get().grd.culldraw(pns);//? cull viewfurst
+			wold::get().culldraw(pns);//? cull viewfurst
 			clk::tk++;//? increase frame instead of clear rendered bit
 			if(viewpointlht)
 				return;
@@ -1456,6 +1463,7 @@ public:
 			glMultMatrixf(mxtexlht);
 			glMatrixMode(GL_MODELVIEW);
 		}
+
 
 		const p3 xinv=p3(mf[0],mf[4],mf[8]);
 		const p3 yinv=p3(mf[1],mf[5],mf[9]);
@@ -1494,9 +1502,10 @@ public:
 		p3 btmplanenml(*this,p3());
 		btmplanenml.vecprod(pbl,pbr).norm();
 		const p3n btmplane(*this,btmplanenml);
-		metrics::viewcull=metrics::globsrend=0;
+		metrics::viewcull=metrics::globsrend=metrics::gridsculled=metrics::gridsrend=0;
 		const p3n cullplanes[]{backplane,rightplane,leftplane,topplane,btmplane};
 		const bvol bv(5,cullplanes);
+		wold::get().gldraw();//? yisculled?
 		wold::get().grd.culldraw(bv);//. rendleftrighti
 		metrics::dtrend=clk::timerdt();
 		if(dodrawhud){
@@ -1615,7 +1624,7 @@ private:
 
 		oss.str("");
 		oss<<setprecision(4);
-		oss<<"cullview("<<metrics::viewcull<<") globstorend("<<metrics::globsrend<<")";
+		oss<<"gridscull("<<metrics::gridsculled<<") gridsrend("<<metrics::gridsrend<<") cullview("<<metrics::viewcull<<") globstorend("<<metrics::globsrend<<")";
 		y+=dy;pl(oss.str().c_str(),y,0,1,.1f);
 
 		oss.str("");
