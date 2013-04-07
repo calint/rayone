@@ -1418,7 +1418,7 @@ public:
 //			glGetFloatv(GL_PROJECTION_MATRIX,mflhtproj);
 			glMatrixMode(GL_MODELVIEW);
 			glLoadIdentity();
-			gluPerspective(80,1,.1,50);
+			gluPerspective(80,1,.001,1000);
 			const p3 lhtlookat=p3(getmxv().zaxis().neg().scale(10)).transl(*this);
 			gluLookAt(lhtpos[0],lhtpos[1],lhtpos[2], lhtlookat.getx(),lhtlookat.gety(),lhtlookat.getz(), 0,1,0);
 			glGetFloatv(GL_MODELVIEW_MATRIX,mxtexlht);
@@ -1447,7 +1447,7 @@ public:
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
 		const float viewangle_deg=45*zoom;
-		gluPerspective(viewangle_deg,(GLdouble)wi/hi,.01,100);
+		gluPerspective(viewangle_deg,(GLdouble)wi/hi,.001f,1000);
 		const p3 lookat=p3(getmxv().zaxis().neg()).transl(*this);
 		gluLookAt(getx(),gety(),getz(), lookat.getx(),lookat.gety(),lookat.getz(), 0,1,0);
 //		GLfloat mfcamproj[16];glGetFloatv(GL_PROJECTION_MATRIX,mfcamproj);
@@ -1787,7 +1787,8 @@ namespace glut{
 	}
 }
 int main(int argc,char**argv){
-	//[&](){puts("lambda");}();
+//    auto func = [] () { cout << "Hello world"; };
+//    func(); // now call the function
 	return glut::main(argc,argv);
 }
 #endif

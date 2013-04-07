@@ -5,12 +5,12 @@ bin=$bindir/rayone
 #cc=g++
 cc=clang++
 cmd="$cc -o $bin $src\
-	-std=c++0x -O4 -Wfatal-errors -Wall -Wextra -Werror -Wconversion -pedantic -pedantic-errors\
+	-std=gnu++11 -O4 -Wfatal-errors -Wall -Wextra -Werror -Wconversion -pedantic -pedantic-errors\
 	-framework OpenGL\
 	-framework GLUT\
 	-I/System/Library/Frameworks/GLUT.framework/Versions/Current/Headers\
 	-I/System/Library/Frameworks/OpenGL.framework/Versions/Current/Headers\
-	-L/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries
+	-L/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries\
 "&&
 echo $cmd&&
 $cmd&&
