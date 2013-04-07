@@ -1576,7 +1576,9 @@ namespace glut{
 				glutSetCursor(GLUT_CURSOR_NONE);
 			}
 		}
-
+		cout<<"  version: "<<glGetString(GL_VERSION)<<"\n";
+		cout<<" renderer: "<<glGetString(GL_RENDERER)<<"\n";
+		cout<<"     glsl: "<<glGetString(GL_SHADING_LANGUAGE_VERSION)<<"\n";
 
 		const GLuint vtxshdr=glCreateShader(GL_VERTEX_SHADER);
 //		const GLchar*vtxshdrsrc[]={"void main(){gl_TexCoord[0]=gl_TextureMatrix[0]*gl_ModelViewMatrix*gl_Vertex;gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex;gl_FrontColor=gl_Color;}"};
