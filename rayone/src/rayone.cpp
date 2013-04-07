@@ -7,14 +7,14 @@ using namespace std;
 #include<sstream>
 
 #include <sys/time.h>
-namespace glox{
+namespace dbox{
 	namespace clk{
 		int fps=120;
 		int dtms=1000/fps;
 		float dt=dtms/1000.f;
 		clock_t t0=clock();
 		clock_t t1=t0;
-		int tk=0;
+		long long tk=0;
 		inline void timerrestart(){t1=clock();}
 //		inline clock_t timerdclk(){return clock()-t1;}
 		inline float timerdt(){return (float)(clock()-t1)/CLOCKS_PER_SEC;}
@@ -50,7 +50,7 @@ namespace glox{
 	inline float degtorad(const float deg=1){return deg*degtoradp;}
 	ostringstream sts;
 }
-using namespace glox;
+using namespace dbox;
 
 class tmr{
 	struct timeval t0;
@@ -266,9 +266,40 @@ istream&operator>>(istream&is,m3&m){
 	return is;
 }
 class p3n:public p3{
-public:
 	p3 n;
-	p3n(const p3&p,const p3&n):p3(p),n(n){}
+public:
+	p3n(const p3&p,const p3&n):
+		p3(p),
+		n(n)
+	{}
+	float dist(const p3&p)const{
+		const p3 v(*this,p);
+		return n.dot(v);
+	}
+};
+
+class bvol{
+	const int count;
+	const p3n*pns;
+public:
+	bvol(const int count,const p3n p[]):
+		count(count),
+		pns(p)
+	{}
+	int cull(const p3&p,const float r)const{
+		for(int i=0;i<count;i++){
+			const p3n&pp=pns[i];
+			//const p3 v(pp,*this);
+			//const float t=v.dot(pp.n);
+			const float t=pp.dist(p);
+			if(t>0){// infront
+				if(t>r){
+					return 1;
+				}
+			}
+		}
+		return 0;
+	}
 };
 
 #include <list>
@@ -289,6 +320,7 @@ class glob:public p3{
 	p3 dd;
 	float bf;
 	float m=1;
+	long long tk;
 protected:
 	p3 d;
 	p3 f;
@@ -347,21 +379,19 @@ public:
 			return;
 		}
 	}
-	void culldraw(const int npn,const p3n pn[]){
-//		flf();l("consider ")<<typeid(*this).name()<<"["<<id<<"]"<<endl;
+	long long culldrawtk;
+	void culldraw(const bvol&bv){
+		if(culldrawtk==clk::tk){
+//			flf();l("double rend");
+			return;
+		}
+		culldrawtk=clk::tk;
+
 		const float r=radius();
-		for(int i=0;i<npn;i++){
-			const p3n&pp=pn[i];
-			const p3 v(pp,*this);
-			const float t=v.dot(pp.n);
-//			flf();l("t=")<<t<<"  "<<"v("<<v<<")"<<endl;
-			if(t>0){// infront
-				if(t>r){
-//					flf();l("culled at p=(")<<*this<<")  r="<<r<<endl;
-					metrics::viewcull++;
-					return;
-				}
-			}
+		const int cull=bv.cull(*this,r);
+		if(cull){
+			metrics::viewcull++;
+			return;
 		}
 		metrics::globsrend++;
 //		flf();l("included")<<endl;
@@ -371,13 +401,21 @@ public:
 		glRotatef(a.getz(),0,0,1);
 		if(drawboundingspheres)drawboundingsphere();
 		gldraw();
-		for(auto g:chs){glPushMatrix();g->culldraw(npn,pn);glPopMatrix();}//? coordsyschange
+		for(auto g:chs){glPushMatrix();g->culldraw(bv);glPopMatrix();}//? coordsyschange
+	}
+	void dotck(){
+		if(tk==clk::tk){
+			flf();l("same tk");
+			return;
+		}
+		tk=clk::tk;
+		tick();
 	}
 	virtual void tick(){
 		d.set(nd);
 		set(np);
 		chs.splice(chs.end(),chsadd);
-		for(auto g:chs)g->tick();
+		for(auto g:chs)g->dotck();
 		for(auto g:chsrm){chs.remove(g);delete g;}
 		chsrm.clear();
 		if(!ppsaved){
@@ -436,7 +474,7 @@ protected:
 	}
 	virtual bool oncol(glob&o){//? defunc
 		metrics::collisions++;
-		flf();l()<<typeid(*this).name()<<"["<<this->getid()<<"]"<<endl;
+		//flf();l()<<typeid(*this).name()<<"["<<this->getid()<<"]"<<endl;
 		if(!o.issolid())return true;
 		const p3&p1=*this;
 		const p3&u1=d;
@@ -513,65 +551,6 @@ protected:
 bool glob::drawboundingspheres=true;
 int glob::drawboundingspheresdetail=6;
 
-class obtex:public glob{
-	GLuint gltx;
-protected:
-	int wihi;
-	GLubyte*rgba;
-	float s;
-public:
-	obtex(glob&g,const int wihi=4*32,const float s=1,const p3&p=p3(),const p3&a=p3(),const float r=1):glob(g,p,a,r),gltx(0),wihi(wihi),s(s){
-		rgba=new GLubyte[wihi*wihi*4];
-		zap();
-		glGenTextures(1,&gltx);
-		glActiveTexture(GL_TEXTURE1);glBindTexture(GL_TEXTURE_2D,gltx);
-		glPixelStorei(GL_UNPACK_ALIGNMENT,1);
-		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-		glTexEnvf(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_DECAL);
-		if(glGetError())throw signl(0,"obtex");
-		updtx();
-	}
-	~obtex(){delete rgba;}
-	void gldraw(){
-		glActiveTexture(GL_TEXTURE1);glBindTexture(GL_TEXTURE_2D,gltx);
-		glDisable(GL_CULL_FACE);
-		glBegin(GL_QUADS);
-			glColor3b(0,0,0);
-			glMultiTexCoord2f(GL_TEXTURE1,0,0);
-			glVertex2f(-1,-1);
-			glMultiTexCoord2f(GL_TEXTURE1,1,0);
-			glVertex2f(1,-1);
-			glMultiTexCoord2f(GL_TEXTURE1,1,-1);
-			glVertex2f(1,1);
-			glMultiTexCoord2f(GL_TEXTURE1,0,-1);
-			glVertex2f(-1,1);
-		glEnd();
-		glEnable(GL_CULL_FACE);
-	}
-protected:
-	void updtx(){
-		glActiveTexture(GL_TEXTURE1);glBindTexture(GL_TEXTURE_2D,gltx);
-		glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA8,wihi,wihi,0,GL_RGBA,GL_UNSIGNED_BYTE,rgba);
-		if(glGetError())throw signl(0,"obtex");
-	}
-	void zap(){
-		int n=wihi*wihi;
-		GLubyte*pp=rgba;
-		while(n--){
-			GLubyte b=(GLubyte)rnd(0,50);
-			if(b<49)
-				b=0;
-			*pp++=b;
-			*pp++=b;
-			*pp++=b;
-			*pp++=255;
-		}
-	}
-};
-
 class keyb{
 public:
 	virtual~keyb(){};//?
@@ -645,6 +624,16 @@ public:
 			if(g)
 				g->coldet();
 	}
+	void culldraw(const bvol&bv){
+		const int c=bv.cull(po,s*1.41f);//? radius
+		if(c)
+			return;
+		for(auto g:ls){glPushMatrix();g->culldraw(bv);glPopMatrix();}
+		for(auto g:lsmx){glPushMatrix();g->culldraw(bv);glPopMatrix();}
+		for(auto&g:grds)
+			if(g)
+				g->culldraw(bv);
+	}
 private:
 	bool putif(glob*g,const p3&p,const float r){
 		if((p.getx()+s+r)<po.getx())return false;
@@ -690,37 +679,10 @@ private:
 	}
 };
 
-class obball:public glob{
-	float lft;
-	GLuint colr;
-public:
-	obball(glob&g,const p3&p,const float r=.05f,const float lft=2,const float bounciness=.3f,const float density=1,const GLuint colr=0xffffffff):glob(g,p,p3(90,0,0),r,bounciness,density),lft(lft),colr(colr){
-		setitem(true);
-	}
-	void gldraw(){
-//		this->colr=((GLuint)rnd(0,0x1000000)<<8)|(0x000000ff);
-//		glColor4ubv((GLubyte*)&colr);
-		if(isblt())
-			glColor3f(1,0,0);
-		else
-			glColor3f(1,1,1);
-		glutSolidSphere(radius(),20,20);
-	}
-	virtual void tick(){
-		lft-=dt();
-		if(lft<0){
-			rm();
-			return;
-		}
-		colr=1;
-		glob::tick();
-	}
-};
 
 class wold:public glob{
 	static wold wd;
 	float t=0;
-	grid grd;
 	wold(const float r=15):
 		glob(*(glob*)0,p3(),p3(),r),
 		t(0),
@@ -733,6 +695,7 @@ class wold:public glob{
 		coldetgrid(true)
 	{}
 public:
+	grid grd;
 	keyb*kb;
 	bool drawaxis,drawgrid,hidezplane,coldetbrute,coldetgrid;
 	inline static wold&get(){return wd;}
@@ -827,6 +790,236 @@ public:
 	}
 };
 wold wold::wd;
+/////////////////////////////////////////////////////////////////////////////
+namespace objects{
+
+class ball:public glob{
+	float lft;
+	GLuint colr;
+public:
+	ball(glob&g,const p3&p,const float r=.05f,const float lft=2,const float bounciness=.3f,const float density=1,const GLuint colr=0xffffffff):glob(g,p,p3(90,0,0),r,bounciness,density),lft(lft),colr(colr){
+		setitem(true);
+	}
+	void gldraw(){
+//		this->colr=((GLuint)rnd(0,0x1000000)<<8)|(0x000000ff);
+//		glColor4ubv((GLubyte*)&colr);
+		if(isblt())
+			glColor3f(1,0,0);
+		else
+			glColor3f(1,1,1);
+		glutSolidSphere(radius(),20,20);
+	}
+	virtual void tick(){
+		lft-=dt();
+		if(lft<0){
+			rm();
+			return;
+		}
+		colr=1;
+		glob::tick();
+	}
+};
+
+class corpqb:public glob{
+	static int n;
+	float a,drscl;
+public:
+	corpqb(glob&pt,const p3&p=p3(),const p3&a=p3(),const float r=1):glob(pt,p,a,r),a(.25f*n++),drscl(.5){
+		setcolmx(true);
+	}
+	void gldraw(){
+		glColor4f(.5,.5,.5,1);
+		glutSolidSphere(radius(),4,3);
+	}
+	void tick(){
+		const float s=.1f;
+		const float dx=rnd(-s,s);
+		const float dy=rnd(-s,s);
+		const float dz=0;
+		const float r=1;
+		transl(dt(dx),dt(dy),dt(dz));
+		const float dr=drscl*sin(a);
+		radius(r+dr);
+//		glob::tick();
+	}
+};
+int corpqb::n=0;
+
+
+class corp:public glob{
+	static const float s;
+public:
+	corp(glob&pt,const p3&p=p3(),const p3&a=p3()):glob(pt,p,a){
+		setcolmx(true);
+		const float ds=.1f*s;
+		const float dz=.5f*s;
+		for(float zz=-s;zz<=s;zz+=dz)
+			for(float xx=-s;xx<=s;xx+=ds)
+				for(float yy=-s;yy<=s;yy+=ds){
+					if(sqrt(xx*xx+yy*yy+zz*zz)>s)
+						continue;
+					new corpqb(pt,p3(xx,yy,zz).transl(p),p3(90,0,0));
+				}
+	}
+	void gldraw(){}
+	void tick(){}
+};
+const float corp::s=7;
+
+class tex:public glob{
+	GLuint gltx;
+protected:
+	int wihi;
+	GLubyte*rgba;
+	float s;
+public:
+	tex(glob&g,const int wihi=4*32,const float s=1,const p3&p=p3(),const p3&a=p3(),const float r=1):glob(g,p,a,r),gltx(0),wihi(wihi),s(s){
+		rgba=new GLubyte[wihi*wihi*4];
+		zap();
+		glGenTextures(1,&gltx);
+		glActiveTexture(GL_TEXTURE1);glBindTexture(GL_TEXTURE_2D,gltx);
+		glPixelStorei(GL_UNPACK_ALIGNMENT,1);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+		glTexEnvf(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_DECAL);
+		if(glGetError())throw signl(0,"obtex");
+		updtx();
+	}
+	~tex(){delete rgba;}
+	void gldraw(){
+		glActiveTexture(GL_TEXTURE1);glBindTexture(GL_TEXTURE_2D,gltx);
+		glDisable(GL_CULL_FACE);
+		glBegin(GL_QUADS);
+			glColor3b(0,0,0);
+			glMultiTexCoord2f(GL_TEXTURE1,0,0);
+			glVertex2f(-1,-1);
+			glMultiTexCoord2f(GL_TEXTURE1,1,0);
+			glVertex2f(1,-1);
+			glMultiTexCoord2f(GL_TEXTURE1,1,-1);
+			glVertex2f(1,1);
+			glMultiTexCoord2f(GL_TEXTURE1,0,-1);
+			glVertex2f(-1,1);
+		glEnd();
+		glEnable(GL_CULL_FACE);
+	}
+protected:
+	void updtx(){
+		glActiveTexture(GL_TEXTURE1);glBindTexture(GL_TEXTURE_2D,gltx);
+		glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA8,wihi,wihi,0,GL_RGBA,GL_UNSIGNED_BYTE,rgba);
+		if(glGetError())throw signl(0,"obtex");
+	}
+	void zap(){
+		int n=wihi*wihi;
+		GLubyte*pp=rgba;
+		while(n--){
+			GLubyte b=(GLubyte)rnd(0,50);
+			if(b<49)
+				b=0;
+			*pp++=b;
+			*pp++=b;
+			*pp++=b;
+			*pp++=255;
+		}
+	}
+};
+
+
+class ray:public tex,public keyb{
+	static unsigned short fnt_az[];
+	static unsigned short fnt_09[];
+	const static int fnt_w=4;
+	const static int fnt_h=4;
+	const static int bp=4;
+	GLubyte*p;
+	GLubyte*pnl;
+	const char*title;
+	ostringstream oss;
+	int x,y;
+public:
+	ray(glob&g=wold::get(),const p3&p=p3(),const p3&a=p3(),const char*title="megarayone and orthonorm"):tex(g,256,1,p,a),p(rgba+wihi*bp+bp),pnl(this->p),title(title),x(0),y(0){
+		setcolmx(true);
+	}
+	virtual void onkeyb(const char c,const bool pressed,const int x,const int y){
+		if(pressed)
+			oss<<c;
+		this->x=x;this->y=y;
+	}
+	virtual void tick(){
+		tex::tick();
+		GLuint*p=(GLuint*)rgba;
+		for(int y=0;y<wihi;y++){
+			for(int x=0;x<wihi;x++){
+				metrics::rays++;
+				*p++=castray(x,y);
+			}
+		}
+		*--p=0xff0000ff;
+		phom().prnt(title).nl().nl().nl().prnt(oss.str().c_str()).nl();
+		p=(GLuint*)rgba;
+		*p=0x00000000;
+		updtx();
+	}
+protected:
+	inline ray&phom(){p=rgba+wihi*bp+bp;return*this;}
+	inline ray&prnt(const char*s){return prnt(strlen(s),s);}
+	ray&prnt(const size_t len,const char*s){
+		pnl=p;
+		for(size_t i=0;i<len;i++){
+			const char ch=s[i];
+			if(ch==0)
+				break;
+			unsigned short sch;
+			if(ch>='a'&&ch<='z')
+				sch=fnt_az[ch-'a'];
+			else if(ch>='0'&&ch<='9'){
+				sch=fnt_09[ch-'0'];
+			}else if(ch=='\n'){
+				p=pnl+fnt_h*wihi*bp;
+				pnl=p;
+				continue;
+			}else if(ch==127){
+				p-=fnt_w*bp;
+				continue;
+			}else if(iswspace(ch)){
+				sch=0x0020;
+			}
+			int h=fnt_h;
+			while(h--){
+				for(int w=fnt_w;w>0;w--){
+					if(sch&1){
+						*p++=255;
+						*p++=255;
+						*p++=255;
+						*p++=255;
+					}else{
+						p+=4;
+//						*p++=0;
+//						*p++=0;
+//						*p++=0;
+//						*p++=0;
+					}
+					sch>>=1;
+				}
+				p=p+wihi*bp-fnt_w*bp;
+			}
+			p=p-wihi*bp*fnt_h+fnt_w*bp;
+		}
+		pnl=p=pnl+fnt_h*wihi*bp;
+		return *this;
+	}
+	inline ray&nl(){p=pnl+=wihi*bp;return*this;}
+	GLuint castray(const float x,const float y){
+		if(x==y)
+			return 0xffffffff;
+		return ((GLuint)x<<24)|((GLuint)y<<8)|0xff;
+	}
+};
+unsigned short ray::fnt_az[]={0x0552,0x0771,0x0212,0x0774,0x0737,0x0137,0x0651,0x0571,0x0220,0x0122,0x0531,0x0610,0x0770,0x0530,0x0252,0x1770,0x4770,0x0160,0x0324,0x0270,0x0650,0x0250,0x0775,0x0525,0x0225,0x0630};
+unsigned short ray::fnt_09[]={0x0252,0x0220,0x0621,0x0642,0x0451,0x0324,0x0612,0x0247,0x2702,0x2452};
+
+}
 
 #include<sys/time.h>
 #include<iomanip>
@@ -836,7 +1029,7 @@ wold wold::wd;
 #include<sys/types.h>
 #include<netdb.h>
 
-namespace gloxnet{
+namespace net{
 	const int nplayers=2;
 	const int nkeys=32;
 	const int keyslen=nplayers*nkeys;
@@ -1022,39 +1215,39 @@ protected:
 	bool hdlkeydn(const char key){
 		const int i=keyix(key);
 		if(!i)return false;
-		const int s=gloxnet::keys[player][i];
+		const int s=net::keys[player][i];
 		if(s==0)return false;
 		if(s==2)return true;
 		if(s!=1)throw signl(2,"unknownstate");
-		gloxnet::keys[player][i]=2;
+		net::keys[player][i]=2;
 		return true;
 	}
 	bool hdlkeytg(const char key){
 		const int i=keyix(key);
 		if(!i)return false;
-		const int s=gloxnet::keys[player][i];
+		const int s=net::keys[player][i];
 		if(s==0)return false;
 		if(s==2)return false;
 		if(s!=1)return false;
-		gloxnet::keys[player][i]=2;
+		net::keys[player][i]=2;
 		return true;
 	}
 private:
 	void keydn(const char key,const int x,const int y){
 		const int i=keyix(key);
 		if(!i)return;
-		const int s=gloxnet::keys[player][i];
+		const int s=net::keys[player][i];
 		if(s==1)return;
-		gloxnet::keys[player][i]=1;
+		net::keys[player][i]=1;
 		sts<<"keydn("<<(int)key<<",["<<x<<","<<y<<"],"<<key<<")";
 	}
 	void keyup(const char key,const int x,const int y){
 		const int i=keyix(key);
-		const int s=gloxnet::keys[player][i];
+		const int s=net::keys[player][i];
 		if(s==0)return;
 		if(s==1)return;
 		if(s!=2)throw signl(2,"unknownstate");
-		gloxnet::keys[player][i]=0;
+		net::keys[player][i]=0;
 		sts<<"keyup("<<(int)key<<",["<<x<<","<<y<<"],"<<key<<")";
 	}
 	int keyix(const char key){//? char keys[]
@@ -1094,8 +1287,8 @@ private:
 		}
 	}
 };
-static struct{
-	GLuint glprog=0;
+namespace shader{
+	GLuint prog=0;
 	GLint ushad=0;
 	GLint utex=0;
 	void init(){
@@ -1135,30 +1328,30 @@ static struct{
 			cerr<<"frag shader did not compile"<<endl<<buf<<endl;
 			throw signl();
 		}
-		glprog=glCreateProgram();
-		glAttachShader(glprog,vtxshdr);
-		glAttachShader(glprog,frgshdr);
-		glLinkProgram(glprog);
-		glGetProgramiv(glprog,GL_LINK_STATUS,&sts);
+		prog=glCreateProgram();
+		glAttachShader(prog,vtxshdr);
+		glAttachShader(prog,frgshdr);
+		glLinkProgram(prog);
+		glGetProgramiv(prog,GL_LINK_STATUS,&sts);
 		if(!sts){
 			glGetProgramInfoLog(frgshdr,n,&nchs,buf);
 			cerr<<"program did not link"<<endl<<buf<<endl;
 			throw signl();
 		}
 
-		glUseProgram(glprog);
+		glUseProgram(prog);
 
-		ushad=glGetUniformLocation(glprog,"ushad");
+		ushad=glGetUniformLocation(prog,"ushad");
 		if(ushad==-1)throw signl(0,"ushad not found");
 		glUniform1i(ushad,2);
 
-		utex=glGetUniformLocation(glprog,"utex");
+		utex=glGetUniformLocation(prog,"utex");
 		if(utex==-1)throw signl(0,"utex not found");
 		glUniform1i(utex,1);
 
 		if(glGetError())throw signl(0,"glinit");
 	}
-}shader;
+};
 class windo:public vehicle{
 	bool dodrawhud,gamemode,fullscr,consolemode,viewpointlht,drawshadows,coki3d;
 	float zoom;
@@ -1227,13 +1420,15 @@ public:
 			glClear(GL_DEPTH_BUFFER_BIT);
 			glViewport(0,0,shadowmapsize,shadowmapsize);
 			glUseProgram(0);//? depthbuffershader
-			wold::get().culldraw(0,0);//? cull viewfurst
+			const bvol pns(0,0);
+			wold::get().grd.culldraw(pns);//? cull viewfurst
+			clk::tk++;//? increase frame instead of clear rendered bit
 			if(viewpointlht)
 				return;
 			glActiveTexture(GL_TEXTURE2);glBindTexture(GL_TEXTURE_2D,gltexshadowmap);
 			glCopyTexSubImage2D(GL_TEXTURE_2D,0,0,0,0,0,shadowmapsize,shadowmapsize);//? fbo
 			glColorMask(1,1,1,1);
-			glUseProgram(shader.glprog);//? glprog.use()
+			glUseProgram(shader::prog);//? glprog.use()
 		}
 		glClearColor(.1f,.1f,.5f,1);
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
@@ -1252,6 +1447,15 @@ public:
 		gluLookAt(getx(),gety(),getz(), lookat.getx(),lookat.gety(),lookat.getz(), 0,1,0);
 		GLfloat mf[16];glGetFloatv(GL_MODELVIEW_MATRIX,mf);
 		glLoadIdentity();
+
+		if(drawshadows){
+			glActiveTexture(GL_TEXTURE2);glBindTexture(GL_TEXTURE_2D,gltexshadowmap);
+			glMatrixMode(GL_TEXTURE);
+			const GLfloat bias[]={.5f,0,0,0, 0,.5f,0,0, 0,0,.5f,0, .5f,.5f,.5f,1};
+			glLoadMatrixf(bias);
+			glMultMatrixf(mxtexlht);
+			glMatrixMode(GL_MODELVIEW);
+		}
 
 		const p3 xinv=p3(mf[0],mf[4],mf[8]);
 		const p3 yinv=p3(mf[1],mf[5],mf[9]);
@@ -1292,15 +1496,8 @@ public:
 		const p3n btmplane(*this,btmplanenml);
 		metrics::viewcull=metrics::globsrend=0;
 		const p3n cullplanes[]{backplane,rightplane,leftplane,topplane,btmplane};
-		if(drawshadows){
-			glActiveTexture(GL_TEXTURE2);glBindTexture(GL_TEXTURE_2D,gltexshadowmap);
-			glMatrixMode(GL_TEXTURE);
-			const GLfloat bias[]={.5f,0,0,0, 0,.5f,0,0, 0,0,.5f,0, .5f,.5f,.5f,1};
-			glLoadMatrixf(bias);
-			glMultMatrixf(mxtexlht);
-			glMatrixMode(GL_MODELVIEW);
-		}
-		parent().culldraw(5,cullplanes);//. rendleftrighti
+		const bvol bv(5,cullplanes);
+		wold::get().grd.culldraw(bv);//. rendleftrighti
 		metrics::dtrend=clk::timerdt();
 		if(dodrawhud){
 			glMatrixMode(GL_MODELVIEW);
@@ -1366,7 +1563,7 @@ private:
 		const float sz=rnd(-sprd,sprd);
 		vv.transl(sx,sy,sz);
 //		globx&o=*new obball(wold::get(),lv.scale(radius()+r).transl(sx,sy,sz).transl(*this),r);
-		glob&o=*new obball(wold::get(),*this,r,4,1,1,0xffff0000);
+		glob&o=*new objects::ball(wold::get(),*this,r,4,1,1,0xffff0000);
 		o.getd().set(vv);
 		o.nd.set(vv);//?
 		o.setblt(true);
@@ -1449,146 +1646,6 @@ public:
 };
 
 
-class obray:public obtex,public keyb{
-	static unsigned short fnt_az[];
-	static unsigned short fnt_09[];
-	const static int fnt_w=4;
-	const static int fnt_h=4;
-	const static int bp=4;
-	GLubyte*p;
-	GLubyte*pnl;
-	const char*title;
-	ostringstream oss;
-	int x,y;
-public:
-	obray(glob&g=wold::get(),const p3&p=p3(),const p3&a=p3(),const char*title="megarayone and orthonorm"):obtex(g,256,1,p,a),p(rgba+wihi*bp+bp),pnl(this->p),title(title),x(0),y(0){
-		setcolmx(true);
-	}
-	virtual void onkeyb(const char c,const bool pressed,const int x,const int y){
-		if(pressed)
-			oss<<c;
-		this->x=x;this->y=y;
-	}
-	virtual void tick(){
-		obtex::tick();
-		GLuint*p=(GLuint*)rgba;
-		for(int y=0;y<wihi;y++){
-			for(int x=0;x<wihi;x++){
-				metrics::rays++;
-				*p++=ray(x,y);
-			}
-		}
-		*--p=0xff0000ff;
-		phom().prnt(title).nl().nl().nl().prnt(oss.str().c_str()).nl();
-		p=(GLuint*)rgba;
-		*p=0x00000000;
-		updtx();
-	}
-protected:
-	inline obray&phom(){p=rgba+wihi*bp+bp;return*this;}
-	inline obray&prnt(const char*s){return prnt(strlen(s),s);}
-	obray&prnt(const size_t len,const char*s){
-		pnl=p;
-		for(size_t i=0;i<len;i++){
-			const char ch=s[i];
-			if(ch==0)
-				break;
-			unsigned short sch;
-			if(ch>='a'&&ch<='z')
-				sch=fnt_az[ch-'a'];
-			else if(ch>='0'&&ch<='9'){
-				sch=fnt_09[ch-'0'];
-			}else if(ch=='\n'){
-				p=pnl+fnt_h*wihi*bp;
-				pnl=p;
-				continue;
-			}else if(ch==127){
-				p-=fnt_w*bp;
-				continue;
-			}else if(iswspace(ch)){
-				sch=0x0020;
-			}
-			int h=fnt_h;
-			while(h--){
-				for(int w=fnt_w;w>0;w--){
-					if(sch&1){
-						*p++=255;
-						*p++=255;
-						*p++=255;
-						*p++=255;
-					}else{
-						p+=4;
-//						*p++=0;
-//						*p++=0;
-//						*p++=0;
-//						*p++=0;
-					}
-					sch>>=1;
-				}
-				p=p+wihi*bp-fnt_w*bp;
-			}
-			p=p-wihi*bp*fnt_h+fnt_w*bp;
-		}
-		pnl=p=pnl+fnt_h*wihi*bp;
-		return *this;
-	}
-	inline obray&nl(){p=pnl+=wihi*bp;return*this;}
-	GLuint ray(const float x,const float y){
-		if(x==y)
-			return 0xffffffff;
-		return ((GLuint)x<<24)|((GLuint)y<<8)|0xff;
-	}
-};
-unsigned short obray::fnt_az[]={0x0552,0x0771,0x0212,0x0774,0x0737,0x0137,0x0651,0x0571,0x0220,0x0122,0x0531,0x0610,0x0770,0x0530,0x0252,0x1770,0x4770,0x0160,0x0324,0x0270,0x0650,0x0250,0x0775,0x0525,0x0225,0x0630};
-unsigned short obray::fnt_09[]={0x0252,0x0220,0x0621,0x0642,0x0451,0x0324,0x0612,0x0247,0x2702,0x2452};
-
-class obcorpqb:public glob{
-	static int n;
-	float a,drscl;
-public:
-	obcorpqb(glob&pt,const p3&p=p3(),const p3&a=p3(),const float r=1):glob(pt,p,a,r),a(.25f*n++),drscl(.5){
-		setcolmx(true);
-	}
-	void gldraw(){
-		glColor4f(.5,.5,.5,1);
-		glutSolidSphere(radius(),4,3);
-	}
-	void tick(){
-		const float s=.1f;
-		const float dx=rnd(-s,s);
-		const float dy=rnd(-s,s);
-		const float dz=0;
-		const float r=1;
-		transl(dt(dx),dt(dy),dt(dz));
-		const float dr=drscl*sin(a);
-		radius(r+dr);
-//		glob::tick();
-	}
-};
-int obcorpqb::n=0;
-
-
-class obcorp:public glob{
-	static const float s;
-public:
-	obcorp(glob&pt,const p3&p=p3(),const p3&a=p3()):glob(pt,p,a){
-		setcolmx(true);
-		const float ds=.1f*s;
-		const float dz=.5f*s;
-		for(float zz=-s;zz<=s;zz+=dz)
-			for(float xx=-s;xx<=s;xx+=ds)
-				for(float yy=-s;yy<=s;yy+=ds){
-					if(sqrt(xx*xx+yy*yy+zz*zz)>s)
-						continue;
-					new obcorpqb(pt,p3(xx,yy,zz).transl(p),p3(90,0,0));
-				}
-	}
-	void gldraw(){}
-	void tick(){}
-};
-const float obcorp::s=7;
-
-
 
 namespace glut{
 	bool multiplayer=false;
@@ -1596,9 +1653,9 @@ namespace glut{
 	windo*players[nplayers];
 	keyb*keyb;
 	windobot bot;
-	void reshape(const int width,const int height){players[gloxnet::player]->reshape(width,height);}
+	void reshape(const int width,const int height){players[net::player]->reshape(width,height);}
 	void draw(){
-		players[gloxnet::player]->drawframe();
+		players[net::player]->drawframe();
 		glutSwapBuffers();
 	}
 	void timer(const int value){
@@ -1606,8 +1663,8 @@ namespace glut{
 		sts.str("");
 		if(multiplayer){
 			clk::timerrestart();
-			gloxnet::sendkeys();
-			gloxnet::reckeys();//? afterupdateandrenderok
+			net::sendkeys();
+			net::reckeys();//? afterupdateandrenderok
 			metrics::dtnet=clk::timerdt();
 		}else{
 			bot.tick();
@@ -1615,7 +1672,7 @@ namespace glut{
 		for(auto o:players)
 			o->handlekeys();
 		metrics::coldetsph=metrics::collisions=metrics::mwrfsh=metrics::mpmul=metrics::mmmul=metrics::rays=0;
-		wold::get().tick();
+		wold::get().dotck();
 //		clk::timerrestart();
 //		metrics::rayone=clk::timerdt();
 		glutPostRedisplay();
@@ -1623,8 +1680,8 @@ namespace glut{
 	}
 	void keydn(const unsigned char key,const int x,const int y){keyb->onkeyb((signed char)key,true,x,y);}// players[gloxnet::player]->keydn((char)key,x,y);}
 	void keyup(const unsigned char key,const int x,const int y){keyb->onkeyb((signed char)key,false,x,y);}//players[gloxnet::player]->keyup((char)key,x,y);}
-	void mouseclk(const int button,const int state,int x,const int y){players[gloxnet::player]->mouseclk(button,state,x,y);}
-	void mousemov(const int x,const int y){players[gloxnet::player]->mousemov(x,y);}
+	void mouseclk(const int button,const int state,int x,const int y){players[net::player]->mouseclk(button,state,x,y);}
+	void mousemov(const int x,const int y){players[net::player]->mousemov(x,y);}
 	static void mainsig(const int i){cerr<<" ••• terminated with signal "<<i<<endl;exit(i);}
 	int main(int argc,char**argv){
 		puts(appname);
@@ -1634,11 +1691,11 @@ namespace glut{
 		if(argc>2){
 			cout<<" multiplayer"<<endl;
 			multiplayer=true;
-			gloxnet::host=argv[1];
-			gloxnet::port=argv[2];
+			net::host=argv[1];
+			net::port=argv[2];
 		//	gloxnet::playername=argv[3];
-			cout<<"· connect to "<<gloxnet::host<<":"<<gloxnet::port<<endl;
-			gloxnet::start();
+			cout<<"· connect to "<<net::host<<":"<<net::port<<endl;
+			net::start();
 			srand(0);
 		}
 		for(int i=0;i<nplayers;i++){
@@ -1647,12 +1704,8 @@ namespace glut{
 		}
 		if(!multiplayer){
 			bot.wn=players[1];
-			gloxnet::player=0;
+			net::player=0;
 		}
-
-
-
-
 
 		players[0]->set(0,.2f,2.f);
 		players[0]->np.set(*players[0]);//?
@@ -1666,10 +1719,7 @@ namespace glut{
 		wd.drawaxis=false;
 
 
-
-
-
-		windo*plr=players[gloxnet::player];
+		windo*plr=players[net::player];
 		keyb=plr;
 
 		glutInit(&argc,argv);
@@ -1692,61 +1742,24 @@ namespace glut{
 		cout<<"     glsl: "<<glGetString(GL_SHADING_LANGUAGE_VERSION)<<"\n";
 
 
-		shader.init();
-
-
-
-
-
+		shader::init();
 
 		wd.glload();
-		new obray(wd);
-		new obcorp(wd,p3(0,4.2f,-6.5f));
-//		{
-//			const float r=1;
-//			const float lft=1000;
-//			const float bounc=1;
-//			glob*g;
-//			new obball(wd,p3(0,r,17),10*r,lft,bounc);
-//			g=new obball(wd,p3(0,r,6),r,lft,bounc);
-//			g->getd().set(0,0,-.05f);
-//			g->nd.set(g->getd());//?
-//			new obball(wd,p3(0,r,2),r,lft,bounc);
-//			new obball(wd,p3(0,r,0),r,lft,bounc);
-//			new obball(wd,p3(0,r,-2),r,lft,bounc);
-//			new obball(wd,p3(0,r,-15),10*r,lft,bounc);
-//		}
-//		{
-//			const float lft=60;
-//			const float v=1.f;//+rndn(.05f);
-//			const float r=.2f;//+rndn(.1f);
-//			glob*g;
-//			const int n=200;
-//			const float s=7.f;
-//			for(int i=0;i<n;i++){
-//				const float x=rndn(1.f);
-//				const float y=rndn(1.f);
-//				const float z=rndn(1.f);
-//				if(x*x+y*y+z*z>1)
-//					continue;
-//				g=new obball(wd,p3(x,6+y,-100+z),r*.5f,lft,.1f,10);
-//				g->getd().set(0,0,v);
-//				g->nd.set(g->getd());
-//			}
-//			const float dpth=.4f;
-//			bool odd=false;
-//			for(float zz=-dpth;zz<=dpth;zz+=2*r){
-//				odd=!odd;
-//				for(float yy=-s;yy<=s;yy+=r*3){
-//					for(float xx=-s;xx<=s;xx+=r*3){
-//						new obball(wd,p3(xx+1.5f*(odd?r:0),s+yy+2.f*(odd?r:0),zz),r,lft,.2f,1);
-////						g->getd().set(rndn(.0001f),rndn(.0001f),rndn(.0001f));
-////						g->nd.set(g->getd());
-//					}
-//				}
-//			}
-//		}
-
+		new objects::ray(wd);
+		new objects::corp(wd,p3(0,4.2f,-6.5f));
+		cout<<endl;
+		const bool sizeofs=true;
+		if(sizeofs){
+//			cout<<endl;
+			cout<<"           type :   size : "<<endl;
+			cout<<"----------------:--------: "<<endl;
+			cout<<setw(16)<<"p3"<<setw(8)<<sizeof(p3)<<endl;
+			cout<<setw(16)<<"m3"<<setw(8)<<sizeof(m3)<<endl;
+			cout<<setw(16)<<"glob"<<setw(8)<<sizeof(glob)<<endl;
+			cout<<setw(16)<<"p3n"<<setw(8)<<sizeof(p3n)<<endl;
+			cout<<setw(16)<<"bvol"<<setw(8)<<sizeof(bvol)<<endl;
+			cout<<endl;
+		}
 
 		glutDisplayFunc(draw);
 		glutReshapeFunc(reshape);
@@ -1757,17 +1770,6 @@ namespace glut{
 		glutTimerFunc(0,timer,clk::dtms);
 //		glutIdleFunc(idle);
 //		glutReportErrors();
-		const bool sizeofs=true;
-		if(sizeofs){
-			cout<<endl;
-			cout<<"           type :   size : "<<endl;
-			cout<<"----------------:--------: "<<endl;
-			cout<<setw(16)<<"p3"<<setw(8)<<sizeof(p3)<<endl;
-			cout<<setw(16)<<"m3"<<setw(8)<<sizeof(m3)<<endl;
-			cout<<setw(16)<<"glob"<<setw(8)<<sizeof(glob)<<endl;
-//			cout<<setw(16)<<"bvol"<<setw(8)<<sizeof(bvol)<<endl;
-			cout<<endl;
-		}
 		glutMainLoop();
 		return 0;
 	}
