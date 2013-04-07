@@ -721,10 +721,20 @@ class wold:public glob{
 	static wold wd;
 	float t=0;
 	grid grd;
-	wold(const float r=15):glob(*(glob*)0,p3(),p3(),r),t(0),grd(r),kb(0){}
+	wold(const float r=15):
+		glob(*(glob*)0,p3(),p3(),r),
+		t(0),
+		grd(r),
+		kb(0),
+		drawaxis(false),
+		drawgrid(true),
+		hidezplane(false),
+		coldetbrute(false),
+		coldetgrid(true)
+	{}
 public:
 	keyb*kb;
-	bool drawaxis=false,drawgrid=true,hidezplane=false,coldetbrute=false,coldetgrid=true;
+	bool drawaxis,drawgrid,hidezplane,coldetbrute,coldetgrid;
 	inline static wold&get(){return wd;}
 	inline float gett()const{return t;}
 	inline void applyg(p3&dd)const{dd.transl(0,-9.82f,0);}
@@ -924,32 +934,53 @@ namespace gloxnet{
 }
 
 class vehicle:public glob,public keyb{
-	float fwdbckrate=.001f;
-	float straferate=.001f;
-	float turnrate=180;
-	float rocketforce=150*mass();
-	float rocketfuelburnrate=6;
-	float smallflapimpulseforce=7*mass();
-	float smallflapfuelburn=.4f;
-	float bigflapimpulseforce=15*mass();
-	float bigflapfuelburn=1;
-	float leapimpulseforce=17*mass();
-	float leapfuelburn=2;
-	float flapperyrecoveryrate=3;
-	float flapperymax=1;
-	float rocketryrecoveryrate=1;
-	float rocketrymax=3;
-	float initflappery=0;
-	float initrocketry=0;
-
-	float flappery=initflappery;
-	float rocketry=initrocketry;
+	float fwdbckrate;
+	float straferate;
+	float turnrate;
+	float rocketforce;
+	float rocketfuelburnrate;
+	float smallflapimpulseforce;
+	float smallflapfuelburn;
+	float bigflapimpulseforce;
+	float bigflapfuelburn;
+	float leapimpulseforce;
+	float leapfuelburn;
+	float flapperyrecoveryrate;
+	float flapperymax;
+	float rocketryrecoveryrate;
+	float rocketrymax;
+	float initflappery;
+	float initrocketry;
+	float flappery;
+	float rocketry;
 	int items=0;
-
-	m3 mxv;
 	int player=0;
+	m3 mxv;
 public:
-	vehicle(glob&g,const p3&p=p3(),const p3&a=p3(),const float r=1,const float density_gcm3=1,const float bounciness=.5f):glob(g,p,a,r,density_gcm3,bounciness){}
+	vehicle(glob&g,const p3&p=p3(),const p3&a=p3(),const float r=1,const float density_gcm3=1,const float bounciness=.5f):
+		glob(g,p,a,r,density_gcm3,bounciness),
+		fwdbckrate(.001f),
+		straferate(.001f),
+		turnrate(180),
+		rocketforce(150*mass()),
+		rocketfuelburnrate(6),
+		smallflapimpulseforce(7*mass()),
+		smallflapfuelburn(.4f),
+		bigflapimpulseforce(15*mass()),
+		bigflapfuelburn(1),
+		leapimpulseforce(17*mass()),
+		leapfuelburn(2),
+		flapperyrecoveryrate(3),
+		flapperymax(1),
+		rocketryrecoveryrate(1),
+		rocketrymax(3),
+		initflappery(0),
+		initrocketry(0),
+		flappery(initflappery),
+		rocketry(initrocketry),
+		items(0),
+		player(0)
+	{}
 	virtual~vehicle(){}
 	virtual void tick(){
 		flappery+=dt(flapperyrecoveryrate);
@@ -1063,18 +1094,98 @@ private:
 		}
 	}
 };
-static GLuint glprog=0;
+static struct{
+	GLuint glprog=0;
+	GLint ushad=0;
+	GLint utex=0;
+	void init(){
+		const GLuint vtxshdr=glCreateShader(GL_VERTEX_SHADER);
+//		const GLchar*vtxshdrsrc[]={"void main(){gl_TexCoord[0]=gl_TextureMatrix[0]*gl_ModelViewMatrix*gl_Vertex;gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex;gl_FrontColor=gl_Color;}"};
+//		const GLchar*vtxshdrsrc[]={"varying vec3 vnml;void main(){gl_TexCoord[0]=gl_TextureMatrix[0]*gl_ModelViewMatrix*gl_Vertex;gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex;gl_FrontColor=gl_Color;vnml=normalize(gl_NormalMatrix*gl_Normal);}"};
+//		const GLchar*vtxshdrsrc[]={"void main(){gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex;gl_FrontColor=gl_Color;gl_TexCoord[1]=gl_Vertex;}"};
+//		const GLchar*vtxshdrsrc[]={"void main(){gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex;gl_FrontColor=gl_Color;gl_TexCoord[1]=gl_MultiTexCoord1;}"};
+//		const GLchar*vtxshdrsrc[]={"void main(){gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex;gl_FrontColor=gl_Color;gl_TexCoord[1]=gl_MultiTexCoord1;gl_TexCoord[2]=gl_TextureMatrix[2]*gl_ModelViewMatrix*gl_Vertex;}"};
+		const GLchar*vtxshdrsrc[]={"varying vec3 vnml;void main(){gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex;gl_FrontColor=gl_Color;gl_TexCoord[1]=gl_MultiTexCoord1;gl_TexCoord[2]=gl_TextureMatrix[2]*gl_ModelViewMatrix*gl_Vertex;vnml=normalize(gl_NormalMatrix*gl_Normal);}"};
+		const GLint vtxshdrsrclen[]={GLint(strlen(vtxshdrsrc[0]))};
+		glShaderSource(vtxshdr,1,vtxshdrsrc,vtxshdrsrclen);
+		glCompileShader(vtxshdr);
+		GLint sts;
+		glGetShaderiv(vtxshdr,GL_COMPILE_STATUS,&sts);
+		const int n=4*1024;
+		char buf[n];
+		GLsizei nchs;
+		if(!sts){
+			glGetShaderInfoLog(vtxshdr,n,&nchs,buf);
+			cerr<<"vertex shader did not compile"<<endl<<buf;
+			throw signl();
+		}
+		const GLuint frgshdr=glCreateShader(GL_FRAGMENT_SHADER);
+//		const GLchar*frgshdrsrc[]={"uniform sampler2D ushad;void main(){vec4 shad;shad=texture2DProj(ushad,gl_TexCoord[0]);float la=shad.z<gl_TexCoord[0].z/gl_TexCoord[0].w?.5:.7;gl_FragColor=la*gl_Color;}"};
+//		const GLchar*frgshdrsrc[]={"varying vec3 vnml;uniform sampler2D ushadow0;void main(){vec4 shado;shado=texture2DProj(ushadow0,gl_TexCoord[0]);float la=shado.z<gl_TexCoord[0].z/gl_TexCoord[0].w?0.:.2;float wa=gl_FragCoord.w;vec3 lhta=vec3(1,0,0);float ln=dot(vnml,lhta);gl_FragColor=clamp(la*.5+wa*.5+ln*.2,0.,1.)*gl_Color;}"};
+//		const GLchar*frgshdrsrc[]={"uniform sampler2D utex;void main(){vec4 tex;tex=texture2D(utex,gl_TexCoord[1].st);gl_FragColor=tex;}"};
+//		const GLchar*frgshdrsrc[]={"uniform sampler2D utex;uniform sampler2D ushad;void main(){vec4 tex;tex=texture2D(utex,gl_TexCoord[1].st);vec4 shad;shad=texture2DProj(ushad,gl_TexCoord[2]);float la=shad.z<gl_TexCoord[2].z/gl_TexCoord[2].w?-.2:0.;gl_FragColor=la*vec4(1,1,1,1)+tex+gl_Color;}"};
+//		const GLchar*frgshdrsrc[]={"uniform sampler2D ushad;uniform sampler2D utex;varying vec3 vnml;void main(){vec4 tex;tex=texture2D(utex,gl_TexCoord[1].st);vec4 shad;shad=texture2DProj(ushad,gl_TexCoord[2]);float la=shad.z<gl_TexCoord[2].z/gl_TexCoord[2].w?.5:1.;vec3 lht=vec3(1,0,0);float ln=dot(normalize(vnml),lht);gl_FragColor=la*(tex+ln+gl_Color);}"};
+		const GLchar*frgshdrsrc[]={"uniform sampler2D ushad;uniform sampler2D utex;varying vec3 vnml;void main(){vec4 tex;tex=texture2D(utex,gl_TexCoord[1].st);vec4 shad;shad=texture2DProj(ushad,gl_TexCoord[2]);float la=shad.z<gl_TexCoord[2].z/gl_TexCoord[2].w?.5:1.;vec3 lht=vec3(1,0,0);float ln=dot(normalize(vnml),lht);float wa=gl_FragCoord.w;gl_FragColor=la*(ln*.2+wa*.5+tex+gl_Color);}"};
+		const GLint frgshdrsrclen[]={GLint(strlen(frgshdrsrc[0]))};
+		glShaderSource(frgshdr,1,frgshdrsrc,frgshdrsrclen);
+		glCompileShader(frgshdr);
+		glGetShaderiv(frgshdr,GL_COMPILE_STATUS,&sts);
+		if(!sts){
+			glGetShaderInfoLog(frgshdr,n,&nchs,buf);
+			cerr<<"frag shader did not compile"<<endl<<buf<<endl;
+			throw signl();
+		}
+		glprog=glCreateProgram();
+		glAttachShader(glprog,vtxshdr);
+		glAttachShader(glprog,frgshdr);
+		glLinkProgram(glprog);
+		glGetProgramiv(glprog,GL_LINK_STATUS,&sts);
+		if(!sts){
+			glGetProgramInfoLog(frgshdr,n,&nchs,buf);
+			cerr<<"program did not link"<<endl<<buf<<endl;
+			throw signl();
+		}
+
+		glUseProgram(glprog);
+
+		ushad=glGetUniformLocation(glprog,"ushad");
+		if(ushad==-1)throw signl(0,"ushad not found");
+		glUniform1i(ushad,2);
+
+		utex=glGetUniformLocation(glprog,"utex");
+		if(utex==-1)throw signl(0,"utex not found");
+		glUniform1i(utex,1);
+
+		if(glGetError())throw signl(0,"glinit");
+	}
+}shader;
 class windo:public vehicle{
-	bool dodrawhud=false,gamemode=false,fullscr=false,consolemode=false;
+	bool dodrawhud,gamemode,fullscr,consolemode,viewpointlht,drawshadows,coki3d;
 	float zoom;
-	int wi,hi;
-	int wiprv=wi,hiprv=hi;
-	GLuint gltexshadowmap=0;
-	GLsizei shadowmapsize=512;
-	bool viewpointlht=false,drawshadows=true,coki3d=false;
+	int wi,hi,wiprv,hiprv;
+	GLuint gltexshadowmap;
+	GLsizei shadowmapsize;
+	float firereload;
 	tmr drawtmr;
 public:
-	windo(glob&g=wold::get(),const p3&p=p3(),const p3&a=p3(),const float r=.1f,const int width=1024,const int height=512,const float zoom=1.5):vehicle(g,p,a,r,.25f),zoom(zoom),wi(width),hi(height){}
+	windo(glob&g=wold::get(),const p3&p=p3(),const p3&a=p3(),const float r=.1f,const int width=1024,const int height=512,const float zoom=1.5):
+		vehicle(g,p,a,r,.25f),
+		dodrawhud(false),
+		gamemode(false),
+		fullscr(false),
+		consolemode(false),
+		viewpointlht(false),
+		drawshadows(true),
+		coki3d(false),
+		zoom(zoom),
+		wi(width),
+		hi(height),
+		wiprv(wi),
+		hiprv(hi),
+		gltexshadowmap(0),
+		shadowmapsize(512),
+		firereload(0)
+	{}
 	void reshape(const int width,const int height){sts<<"reshape("<<wi<<"x"<<hi<<")";wi=width;hi=height;}
 	void drawframe(){
 		const float freq=drawtmr.dt();
@@ -1122,7 +1233,7 @@ public:
 			glActiveTexture(GL_TEXTURE2);glBindTexture(GL_TEXTURE_2D,gltexshadowmap);
 			glCopyTexSubImage2D(GL_TEXTURE_2D,0,0,0,0,0,shadowmapsize,shadowmapsize);//? fbo
 			glColorMask(1,1,1,1);
-			glUseProgram(glprog);//? glprog.use()
+			glUseProgram(shader.glprog);//? glprog.use()
 		}
 		glClearColor(.1f,.1f,.5f,1);
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
@@ -1241,7 +1352,6 @@ private:
 			glutSetCursor(GLUT_CURSOR_INHERIT);
 		}
 	}
-	float firereload=0;
 	void fire(){
 //		firereload+=dt(60);if(firereload>1)firereload=1;
 //		if(firereload<1)return;
@@ -1561,6 +1671,7 @@ namespace glut{
 
 		windo*plr=players[gloxnet::player];
 		keyb=plr;
+
 		glutInit(&argc,argv);
 //		glutIgnoreKeyRepeat(true);
 		glutInitDisplayMode(GLUT_DOUBLE|GLUT_DEPTH|GLUT_RGBA);
@@ -1580,64 +1691,8 @@ namespace glut{
 		cout<<" renderer: "<<glGetString(GL_RENDERER)<<"\n";
 		cout<<"     glsl: "<<glGetString(GL_SHADING_LANGUAGE_VERSION)<<"\n";
 
-		const GLuint vtxshdr=glCreateShader(GL_VERTEX_SHADER);
-//		const GLchar*vtxshdrsrc[]={"void main(){gl_TexCoord[0]=gl_TextureMatrix[0]*gl_ModelViewMatrix*gl_Vertex;gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex;gl_FrontColor=gl_Color;}"};
-//		const GLchar*vtxshdrsrc[]={"varying vec3 vnml;void main(){gl_TexCoord[0]=gl_TextureMatrix[0]*gl_ModelViewMatrix*gl_Vertex;gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex;gl_FrontColor=gl_Color;vnml=normalize(gl_NormalMatrix*gl_Normal);}"};
-//		const GLchar*vtxshdrsrc[]={"void main(){gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex;gl_FrontColor=gl_Color;gl_TexCoord[1]=gl_Vertex;}"};
-//		const GLchar*vtxshdrsrc[]={"void main(){gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex;gl_FrontColor=gl_Color;gl_TexCoord[1]=gl_MultiTexCoord1;}"};
-//		const GLchar*vtxshdrsrc[]={"void main(){gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex;gl_FrontColor=gl_Color;gl_TexCoord[1]=gl_MultiTexCoord1;gl_TexCoord[2]=gl_TextureMatrix[2]*gl_ModelViewMatrix*gl_Vertex;}"};
-		const GLchar*vtxshdrsrc[]={"varying vec3 vnml;void main(){gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex;gl_FrontColor=gl_Color;gl_TexCoord[1]=gl_MultiTexCoord1;gl_TexCoord[2]=gl_TextureMatrix[2]*gl_ModelViewMatrix*gl_Vertex;vnml=normalize(gl_NormalMatrix*gl_Normal);}"};
-		const GLint vtxshdrsrclen[]={GLint(strlen(vtxshdrsrc[0]))};
-		glShaderSource(vtxshdr,1,vtxshdrsrc,vtxshdrsrclen);
-		glCompileShader(vtxshdr);
-		GLint sts;
-		glGetShaderiv(vtxshdr,GL_COMPILE_STATUS,&sts);
-		const int n=4*1024;
-		char buf[n];
-		GLsizei nchs;
-		if(!sts){
-			glGetShaderInfoLog(vtxshdr,n,&nchs,buf);
-			cerr<<"vertex shader did not compile"<<endl<<buf;
-			throw signl();
-		}
-		const GLuint frgshdr=glCreateShader(GL_FRAGMENT_SHADER);
-//		const GLchar*frgshdrsrc[]={"uniform sampler2D ushad;void main(){vec4 shad;shad=texture2DProj(ushad,gl_TexCoord[0]);float la=shad.z<gl_TexCoord[0].z/gl_TexCoord[0].w?.5:.7;gl_FragColor=la*gl_Color;}"};
-//		const GLchar*frgshdrsrc[]={"varying vec3 vnml;uniform sampler2D ushadow0;void main(){vec4 shado;shado=texture2DProj(ushadow0,gl_TexCoord[0]);float la=shado.z<gl_TexCoord[0].z/gl_TexCoord[0].w?0.:.2;float wa=gl_FragCoord.w;vec3 lhta=vec3(1,0,0);float ln=dot(vnml,lhta);gl_FragColor=clamp(la*.5+wa*.5+ln*.2,0.,1.)*gl_Color;}"};
-//		const GLchar*frgshdrsrc[]={"uniform sampler2D utex;void main(){vec4 tex;tex=texture2D(utex,gl_TexCoord[1].st);gl_FragColor=tex;}"};
-//		const GLchar*frgshdrsrc[]={"uniform sampler2D utex;uniform sampler2D ushad;void main(){vec4 tex;tex=texture2D(utex,gl_TexCoord[1].st);vec4 shad;shad=texture2DProj(ushad,gl_TexCoord[2]);float la=shad.z<gl_TexCoord[2].z/gl_TexCoord[2].w?-.2:0.;gl_FragColor=la*vec4(1,1,1,1)+tex+gl_Color;}"};
-//		const GLchar*frgshdrsrc[]={"uniform sampler2D ushad;uniform sampler2D utex;varying vec3 vnml;void main(){vec4 tex;tex=texture2D(utex,gl_TexCoord[1].st);vec4 shad;shad=texture2DProj(ushad,gl_TexCoord[2]);float la=shad.z<gl_TexCoord[2].z/gl_TexCoord[2].w?.5:1.;vec3 lht=vec3(1,0,0);float ln=dot(normalize(vnml),lht);gl_FragColor=la*(tex+ln+gl_Color);}"};
-		const GLchar*frgshdrsrc[]={"uniform sampler2D ushad;uniform sampler2D utex;varying vec3 vnml;void main(){vec4 tex;tex=texture2D(utex,gl_TexCoord[1].st);vec4 shad;shad=texture2DProj(ushad,gl_TexCoord[2]);float la=shad.z<gl_TexCoord[2].z/gl_TexCoord[2].w?.5:1.;vec3 lht=vec3(1,0,0);float ln=dot(normalize(vnml),lht);float wa=gl_FragCoord.w;gl_FragColor=la*(ln*.2+wa*.5+tex+gl_Color);}"};
-		const GLint frgshdrsrclen[]={GLint(strlen(frgshdrsrc[0]))};
-		glShaderSource(frgshdr,1,frgshdrsrc,frgshdrsrclen);
-		glCompileShader(frgshdr);
-		glGetShaderiv(frgshdr,GL_COMPILE_STATUS,&sts);
-		if(!sts){
-			glGetShaderInfoLog(frgshdr,n,&nchs,buf);
-			cerr<<"frag shader did not compile"<<endl<<buf<<endl;
-			throw signl();
-		}
-		glprog=glCreateProgram();
-		glAttachShader(glprog,vtxshdr);
-		glAttachShader(glprog,frgshdr);
-		glLinkProgram(glprog);
-		glGetProgramiv(glprog,GL_LINK_STATUS,&sts);
-		if(!sts){
-			glGetProgramInfoLog(frgshdr,n,&nchs,buf);
-			cerr<<"program did not link"<<endl<<buf<<endl;
-			throw signl();
-		}
 
-		glUseProgram(glprog);
-
-		const GLint ushad=glGetUniformLocation(glprog,"ushad");
-		if(ushad==-1)throw signl(0,"ushad not found");
-		glUniform1i(ushad,2);
-
-		const GLint utex=glGetUniformLocation(glprog,"utex");
-		if(utex==-1)throw signl(0,"utex not found");
-		glUniform1i(utex,1);
-
-		if(glGetError())throw signl(0,"glinit");
+		shader.init();
 
 
 
