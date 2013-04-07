@@ -832,7 +832,7 @@ namespace gloxnet{
 	const int keyslen=nplayers*nkeys;
 	const char*host="127.0.0.1";
 	const char*port="8085";
-	const char*playername="noname";
+//	const char*playername="noname";
 	bool sockio=false;
 
 	char keys[nplayers][nkeys];
@@ -876,12 +876,21 @@ namespace gloxnet{
 	//	flf();l()<<"socket "<<sockfd<<"  errno("<<errno<<")"<<endl;
 		if(connect(sockfd,ai->ai_addr,ai->ai_addrlen)){flf();l(strerror(errno))<<endl;throw signl();}
 		flf();l("connected")<<endl;
+		string nm;
+		const char c[]="0123456789abcdef";
+		char pnm[33];
+		srand((unsigned int)time(NULL));
+		for(int i=0;i<nkeys;i++){
+			pnm[i]=c[(int)rand()%16];
+		}
+		pnm[32]=0;
+		flf();cout<<" "<<sizeof keys<<".  player name: "<<pnm<<"\n";
 		memset(keys,0,sizeof keys);
 		if(!sockio){
-			strncpy(keys[player],playername,nkeys);
+			strncpy(keys[player],pnm,nkeys);
 		}else{//?
 			string s="get /gloxnet .\r\ncookie:i=";
-			s.append(playername).append("\r\n\r\n");
+			s.append(pnm).append("\r\n\r\n");
 			const char*sc=s.c_str();
 			flf();l(sc)<<endl;
 			const size_t sclen=s.length();
@@ -893,12 +902,12 @@ namespace gloxnet{
 		}
 		sendkeys();
 
-		flf();l("connected. waiting for other players.")<<endl;
+		flf();l("waiting for other players.")<<endl;
 		reckeys();
 		flf();l("all players connected.")<<endl;
 		int i=0;
 		for(auto s:keys){
-			if(!strcmp(playername,s)){
+			if(!strcmp(pnm,s)){
 				player=i;
 				break;
 			}
@@ -1512,15 +1521,15 @@ namespace glut{
 //		const GLubyte*version=glGetString(GL_VERSION);
 //		if(version)printf("%s\n",version);
 		for(int i=0;i<32;i++)signal(i,mainsig);//?
-		srand(0);
 		if(argc>2){
 			cout<<" multiplayer"<<endl;
 			multiplayer=true;
 			gloxnet::host=argv[1];
 			gloxnet::port=argv[2];
-			gloxnet::playername=argv[3];
+		//	gloxnet::playername=argv[3];
 			cout<<"· connect to "<<gloxnet::host<<":"<<gloxnet::port<<endl;
 			gloxnet::start();
+			srand(0);
 		}
 		for(int i=0;i<nplayers;i++){
 			players[i]=new windo();
