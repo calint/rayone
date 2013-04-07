@@ -841,7 +841,7 @@ namespace gloxnet{
 	struct addrinfo*ai=0;
 	void sendkeys(){
 		const ssize_t bytes_sent=send(sockfd,keys[player],nkeys,0);
-		flf();l("sent keys for player ")<<player<<"  bytessent("<<bytes_sent<<endl;
+		//flf();l("sent keys for player ")<<player<<"  bytessent("<<bytes_sent<<endl;
 		if(bytes_sent==-1){flf();l(strerror(errno))<<endl;throw signl(1,"sendkeys");}
 	}
 	void print(){
@@ -876,21 +876,21 @@ namespace gloxnet{
 	//	flf();l()<<"socket "<<sockfd<<"  errno("<<errno<<")"<<endl;
 		if(connect(sockfd,ai->ai_addr,ai->ai_addrlen)){flf();l(strerror(errno))<<endl;throw signl();}
 		flf();l("connected")<<endl;
-		string nm;
 		const char c[]="0123456789abcdef";
-		char pnm[33];
+		char playerid[33];
 		srand((unsigned int)time(NULL));
 		for(int i=0;i<nkeys;i++){
-			pnm[i]=c[(int)rand()%16];
+			playerid[i]=c[(int)rand()%16];
 		}
-		pnm[32]=0;
-		flf();cout<<" "<<sizeof keys<<".  player name: "<<pnm<<"\n";
+		playerid[32]=0;
+		flf();cout<<"  keys:"<<sizeof keys<<"\n";
+		flf();cout<<"  player id: "<<playerid<<"\n";
 		memset(keys,0,sizeof keys);
 		if(!sockio){
-			strncpy(keys[player],pnm,nkeys);
+			strncpy(keys[player],playerid,nkeys);
 		}else{//?
 			string s="get /gloxnet .\r\ncookie:i=";
-			s.append(pnm).append("\r\n\r\n");
+			s.append(playerid).append("\r\n\r\n");
 			const char*sc=s.c_str();
 			flf();l(sc)<<endl;
 			const size_t sclen=s.length();
@@ -907,7 +907,7 @@ namespace gloxnet{
 		flf();l("all players connected.")<<endl;
 		int i=0;
 		for(auto s:keys){
-			if(!strcmp(pnm,s)){
+			if(!strcmp(playerid,s)){
 				player=i;
 				break;
 			}
@@ -1497,7 +1497,7 @@ namespace glut{
 		if(multiplayer){
 			clk::timerrestart();
 			gloxnet::sendkeys();
-			gloxnet::reckeys();
+			gloxnet::reckeys();//? afterupdateandrenderok
 			metrics::dtnet=clk::timerdt();
 		}else{
 			bot.tick();
@@ -1569,7 +1569,7 @@ namespace glut{
 			glutEnterGameMode();
 			glutSetCursor(GLUT_CURSOR_NONE);
 		}else {
-		glutInitWindowSize(plr->width(),plr->height());
+			glutInitWindowSize(plr->width(),plr->height());
 			glutCreateWindow("glox");
 			if(plr->isfullscreen()){
 				glutFullScreen();
