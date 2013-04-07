@@ -833,7 +833,7 @@ namespace gloxnet{
 	const char*host="127.0.0.1";
 	const char*port="8085";
 	const char*playername="noname";
-	bool sockio=true;
+	bool sockio=false;
 
 	char keys[nplayers][nkeys];
 	int player=0;
