@@ -323,6 +323,7 @@ class glob:public p3{
 	float bf;
 	float m=1;
 	long long tk;
+	long long culldrawtk;
 protected:
 	p3 d;
 	p3 f;
@@ -337,7 +338,10 @@ public:
 	static int drawboundingspheresdetail;
 
 	glob(glob&g,const p3&p=p3(),const p3&a=p3(),const float r=1,const float density_gcm3=1,const float bounciness=.5f)
-		:p3(p),id(metrics::globs++),g(g),a(a),bits(1),rmed(false),r(r),bf(bounciness),m(density_gcm3*4/3*pi*r*r*r),d(p3()),f(p3()),fi(p3()),pp(p),ppsaved(false),np(p),nd(d){
+		:p3(p),id(metrics::globs++),g(g),a(a),bits(1),rmed(false),
+		 r(r),bf(bounciness),m(density_gcm3*4/3*pi*r*r*r),
+		 tk(0),culldrawtk(0),d(p3()),f(p3()),fi(p3()),pp(p),ppsaved(false),np(p),nd(d)
+	{
 		if(&g==0)return;
 		g.chsadd.push_back(this);
 	}
@@ -381,7 +385,6 @@ public:
 			return;
 		}
 	}
-	long long culldrawtk;
 	void culldraw(const bvol&bv){
 		if(culldrawtk==clk::tk){
 //			flf();l("double rend");
@@ -1783,5 +1786,8 @@ namespace glut{
 		return 0;
 	}
 }
-int main(int argc,char**argv){return glut::main(argc,argv);}
+int main(int argc,char**argv){
+	//[&](){puts("lambda");}();
+	return glut::main(argc,argv);
+}
 #endif
