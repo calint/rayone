@@ -1397,6 +1397,7 @@ public:
 		const GLfloat lhtpos[]={getx(),gety()+radius()*2,getz(),1};
 //		GLfloat mflhtproj[16];
 		GLfloat mxtexlht[16];
+		GLfloat mxlhtwv[16];
 
 		glEnable(GL_CULL_FACE);
 		glClearDepth(1);
@@ -1420,8 +1421,11 @@ public:
 //			glGetFloatv(GL_PROJECTION_MATRIX,mflhtproj);
 			glMatrixMode(GL_MODELVIEW);
 			glLoadIdentity();
-			gluPerspective(80,1,.001,1000);
 			const p3 lhtlookat=p3(getmxv().zaxis().neg().scale(10)).transl(*this);
+			gluLookAt(lhtpos[0],lhtpos[1],lhtpos[2], lhtlookat.getx(),lhtlookat.gety(),lhtlookat.getz(), 0,1,0);
+			glGetFloatv(GL_MODELVIEW_MATRIX,mxlhtwv);
+			glLoadIdentity();
+			gluPerspective(80,1,.001,1000);
 			gluLookAt(lhtpos[0],lhtpos[1],lhtpos[2], lhtlookat.getx(),lhtlookat.gety(),lhtlookat.getz(), 0,1,0);
 			glGetFloatv(GL_MODELVIEW_MATRIX,mxtexlht);
 			glCullFace(GL_FRONT);
@@ -1432,8 +1436,14 @@ public:
 			glClear(GL_DEPTH_BUFFER_BIT);
 			glViewport(0,0,shadowmapsize,shadowmapsize);
 			glUseProgram(0);//? depthbuffershader
-			const bvol pns(0,0);
-			wold::get().culldraw(pns);//? cull viewfurst
+
+			const p3 lhtcoord(lhtpos[0],lhtpos[1],lhtpos[2]);
+			const p3 zinv=p3(mxlhtwv[2],mxlhtwv[6],mxlhtwv[10]);
+			const p3n backplane(lhtcoord,zinv);//? viewfurst
+			const p3n cullplanes[]{backplane};
+			const bvol bv(1,cullplanes);
+			wold::get().gldraw();//? y culled
+			wold::get().grd.culldraw(bv);//? cull viewfurst
 			clk::tk++;//? increase frame instead of clear rendered bit
 			if(viewpointlht)
 				return;
