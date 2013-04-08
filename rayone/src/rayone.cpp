@@ -1403,7 +1403,9 @@ public:
 		glEnable(GL_DEPTH_TEST);
 		if(drawshadows){
 			if(!gltexshadowmap){
-				glActiveTexture(GL_TEXTURE2);glGenTextures(1,&gltexshadowmap);glBindTexture(GL_TEXTURE_2D,gltexshadowmap);
+				glActiveTexture(GL_TEXTURE2);
+				glGenTextures(1,&gltexshadowmap);
+				glBindTexture(GL_TEXTURE_2D,gltexshadowmap);
 				glTexImage2D(GL_TEXTURE_2D,0,GL_DEPTH_COMPONENT,shadowmapsize,shadowmapsize,0,GL_DEPTH_COMPONENT,GL_FLOAT,0);
 				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
 				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
@@ -1435,7 +1437,8 @@ public:
 			clk::tk++;//? increase frame instead of clear rendered bit
 			if(viewpointlht)
 				return;
-			glActiveTexture(GL_TEXTURE2);glBindTexture(GL_TEXTURE_2D,gltexshadowmap);
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D,gltexshadowmap);
 			glCopyTexSubImage2D(GL_TEXTURE_2D,0,0,0,0,0,shadowmapsize,shadowmapsize);//? fbo
 			glColorMask(1,1,1,1);
 			glUseProgram(shader::prog);//? glprog.use()
@@ -1459,7 +1462,12 @@ public:
 		glLoadIdentity();
 
 		if(drawshadows){
-			glActiveTexture(GL_TEXTURE2);glBindTexture(GL_TEXTURE_2D,gltexshadowmap);
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D,gltexshadowmap);
+			//glGenerateMipmap(GL_TEXTURE_2D);
+			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+
 			glMatrixMode(GL_TEXTURE);
 			const GLfloat bias[]={.5f,0,0,0, 0,.5f,0,0, 0,0,.5f,0, .5f,.5f,.5f,1};
 			glLoadMatrixf(bias);
@@ -1736,6 +1744,7 @@ namespace glut{
 
 		glutInit(&argc,argv);
 //		glutIgnoreKeyRepeat(true);
+//		glutInitDisplayMode(GLUT_3_2_CORE_PROFILE|GLUT_DOUBLE|GLUT_DEPTH|GLUT_RGBA);
 		glutInitDisplayMode(GLUT_DOUBLE|GLUT_DEPTH|GLUT_RGBA);
 		if(plr->isgamemode()){
 			glutGameModeString("1366x768:32");
