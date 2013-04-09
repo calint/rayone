@@ -177,9 +177,9 @@ public:
 		const float x=src.getx();
 		const float y=src.gety();
 		const float z=src.getz();
-		const float nx=ox+x*xx+y*yx+z*zx;
-		const float ny=oy+x*xy+y*yy+z*zy;
-		const float nz=oz+x*xz+y*yz+z*zz;
+		const float nx=x*xx+y*yx+z*zx+ox;
+		const float ny=x*xy+y*yy+z*zy+oy;
+		const float nz=x*xz+y*yz+z*zz+oz;
 		dst.set(nx,ny,nz);
 		return*this;
 	}
@@ -1075,7 +1075,7 @@ namespace net{
 		if(reclen!=keyslen)throw signl(3,"uncompleterec");//?
 //		print();
 	}
-	void start(){
+	void open(){
 		flf();l()<<"connect "<<host<<":"<<port<<endl;
 
 		struct addrinfo hints;
@@ -1725,7 +1725,7 @@ namespace glut{
 			net::port=argv[2];
 		//	gloxnet::playername=argv[3];
 			cout<<"· connect to "<<net::host<<":"<<net::port<<endl;
-			net::start();
+			net::open();
 			srand(0);
 		}
 		for(int i=0;i<nplayers;i++){
