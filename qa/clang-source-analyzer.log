@@ -1,0 +1,9 @@
+../src/rayone.cpp:576:55: error: parenthesized initialization of a member array is a GNU extension [-Wgnu-array-member-paren-init]
+        grid(const float size,const p3&p=p3()):po(p),s(size),grds({0,0,0,0,0,0,0,0}){metrics::ngrids++;}
+                                                             ^    ~~~~~~~~~~~~~~~~~
+1 error generated.
+scan-build: 0 bugs found.
+scan-build: The analyzer encountered problems on some source files.
+scan-build: Preprocessed versions of these sources were deposited in '/var/folders/_k/9fp150gn26d84_lr0jddt_440000gn/T/scan-build-2012-07-09-5/failures'.
+scan-build: Please consider submitting a bug report using these files:
+scan-build:   http://clang-analyzer.llvm.org/filing_bugs.html
